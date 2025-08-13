@@ -32,12 +32,12 @@ class DataCacheManager {
 
   Future<Response<T>> cache<T extends Object>(
     String name, {
-    bool? cached,
+    bool? enabled,
     Iterable<Object?> keyProps = const [],
     required Future<Response<T>> Function() callback,
   }) async {
-    cached ??= false;
-    if (!cached) return callback();
+    enabled ??= false;
+    if (!enabled) return callback();
     final k = hashKey(T, name, keyProps);
     final x = _db[k];
     if (x is Response<T> && x.isValid) return x;

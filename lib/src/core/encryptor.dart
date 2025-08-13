@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:encrypt/encrypt.dart' as crypto;
 import 'package:flutter/foundation.dart';
 
-import '../core/configs.dart';
+import 'configs.dart';
 
 /// Signature for a function that builds an encryptor request.
 typedef EncryptorRequestBuilder = Map<String, dynamic> Function(

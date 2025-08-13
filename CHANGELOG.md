@@ -1,3 +1,9 @@
+## 2.2.0
+
+* Code reduction 
+* Reuse repository
+* Improved BackupMode, SingletonMode, CacheMode, and LazyMode
+
 ## 2.1.9
 
 ## 2.1.8

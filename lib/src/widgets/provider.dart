@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../repositories/base.dart';
+import '../core/repository.dart';
 
 class DataManagementProvider extends InheritedWidget {
   final List<DataRepository> repositories;

@@ -1,10 +1,10 @@
 import 'package:flutter_entity/flutter_entity.dart';
 
 import '../core/configs.dart';
-import '../models/checker.dart';
-import '../models/updating_info.dart';
-import '../utils/encryptor.dart';
-import '../utils/errors.dart';
+import '../core/checker.dart';
+import '../core/updating_info.dart';
+import '../core/encryptor.dart';
+import '../core/errors.dart';
 
 /// # Won't Use Directly
 /// You can use:

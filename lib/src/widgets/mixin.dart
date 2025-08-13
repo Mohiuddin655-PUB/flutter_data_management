@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_entity/entity.dart';
 
-import '../repositories/base.dart';
-import '../repositories/local.dart';
-import '../repositories/remote.dart';
+import '../core/repository.dart';
 import 'provider.dart';
 
 mixin DataManagementMixin<T extends Entity, S extends StatefulWidget>
@@ -29,12 +27,7 @@ mixin DataManagementMixin<T extends Entity, S extends StatefulWidget>
         .connectivityChanges
         .listen((connected) {
       if (!connected) return;
-      final repo = repository;
-      if (repo is RemoteDataRepository<T>) {
-        repo.push();
-      } else if (repo is LocalDataRepository<T>) {
-        repo.pull();
-      }
+      repository.restore();
     });
   }
 
