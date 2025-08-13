@@ -12,6 +12,26 @@ typedef FutureConnectivityCallback = Future<bool> Function();
 
 enum DatabaseType { local, remote }
 
+enum DataModifiers {
+  checkById,
+  clear,
+  create,
+  creates,
+  deleteById,
+  deleteByIds,
+  get,
+  getById,
+  getByIds,
+  getByQuery,
+  listen,
+  listenById,
+  listenByIds,
+  listenByQuery,
+  search,
+  updateById,
+  updateByIds
+}
+
 /// ## Abstract class representing a generic data repository with methods for CRUD operations.
 ///
 /// This abstract class defines the structure of a generic data repository.
@@ -132,6 +152,17 @@ abstract class DataRepository<T extends Entity> {
     }
   }
 
+  Future<Response<T>> _modifier(
+    DataModifiers modifierId,
+    Future<Response<T>> Function() callback,
+  ) async {
+    try {
+      return callback().then((value) => modifier(value, modifierId));
+    } catch (error) {
+      return Response(status: Status.failure, error: error.toString());
+    }
+  }
+
   Stream<Response<S>> _stream<S extends Object>(
     Stream<Response<S>> Function(DataSource<T> source) callback,
   ) async* {
@@ -140,6 +171,22 @@ abstract class DataRepository<T extends Entity> {
     } catch (error) {
       yield Response(status: Status.failure, error: error.toString());
     }
+  }
+
+  Stream<Response<T>> _streamModifier(
+    DataModifiers modifierId,
+    Stream<Response<T>> Function() callback,
+  ) {
+    return callback().asyncMap((value) {
+      return modifier(value, modifierId);
+    });
+  }
+
+  Future<Response<T>> modifier(
+    Response<T> value,
+    DataModifiers modifier,
+  ) async {
+    return value;
   }
 
   /// Method to check data by ID with optional data source builder.
@@ -157,26 +204,28 @@ abstract class DataRepository<T extends Entity> {
     Object? args,
     bool? lazyMode,
     bool? backupMode,
-  }) async {
-    final feedback = await _execute((source) {
-      return source.checkById(id, params: params, args: args);
-    });
-    if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
-    final backup = await _backup((source) {
-      return source.checkById(id, params: params, args: args);
-    });
-    if (backup.isValid) {
-      if (isLazyMode(lazyMode)) {
-        _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
-      } else {
-        await _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
+  }) {
+    return _modifier(DataModifiers.checkById, () async {
+      final feedback = await _execute((source) {
+        return source.checkById(id, params: params, args: args);
+      });
+      if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
+      final backup = await _backup((source) {
+        return source.checkById(id, params: params, args: args);
+      });
+      if (backup.isValid) {
+        if (isLazyMode(lazyMode)) {
+          _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        } else {
+          await _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        }
       }
-    }
-    return backup;
+      return backup;
+    });
   }
 
   /// Method to clear data with optional data source builder.
@@ -192,16 +241,18 @@ abstract class DataRepository<T extends Entity> {
     Object? args,
     bool? lazyMode,
     bool? backupMode,
-  }) async {
-    if (isBackupMode(backupMode)) {
-      if (isLazyMode(lazyMode)) {
-        _backup((source) => source.clear(params: params, args: args));
-      } else {
-        await _backup((source) => source.clear(params: params, args: args));
+  }) {
+    return _modifier(DataModifiers.clear, () async {
+      if (isBackupMode(backupMode)) {
+        if (isLazyMode(lazyMode)) {
+          _backup((source) => source.clear(params: params, args: args));
+        } else {
+          await _backup((source) => source.clear(params: params, args: args));
+        }
       }
-    }
-    return _execute((source) {
-      return source.clear(params: params, args: args);
+      return _execute((source) {
+        return source.clear(params: params, args: args);
+      });
     });
   }
 
@@ -256,18 +307,20 @@ abstract class DataRepository<T extends Entity> {
     Object? args,
     bool? lazyMode,
     bool? backupMode,
-  }) async {
-    if (isBackupMode(backupMode)) {
-      if (isLazyMode(lazyMode)) {
-        _backup((source) => source.create(data, params: params, args: args));
-      } else {
-        await _backup((source) {
-          return source.create(data, params: params, args: args);
-        });
+  }) {
+    return _modifier(DataModifiers.create, () async {
+      if (isBackupMode(backupMode)) {
+        if (isLazyMode(lazyMode)) {
+          _backup((source) => source.create(data, params: params, args: args));
+        } else {
+          await _backup((source) {
+            return source.create(data, params: params, args: args);
+          });
+        }
       }
-    }
-    return _execute((source) {
-      return source.create(data, params: params, args: args);
+      return _execute((source) {
+        return source.create(data, params: params, args: args);
+      });
     });
   }
 
@@ -287,18 +340,20 @@ abstract class DataRepository<T extends Entity> {
     Object? args,
     bool? lazyMode,
     bool? backupMode,
-  }) async {
-    if (isBackupMode(backupMode)) {
-      if (isLazyMode(lazyMode)) {
-        _backup((source) => source.creates(data, params: params, args: args));
-      } else {
-        await _backup((source) {
-          return source.creates(data, params: params, args: args);
-        });
+  }) {
+    return _modifier(DataModifiers.creates, () async {
+      if (isBackupMode(backupMode)) {
+        if (isLazyMode(lazyMode)) {
+          _backup((source) => source.creates(data, params: params, args: args));
+        } else {
+          await _backup((source) {
+            return source.creates(data, params: params, args: args);
+          });
+        }
       }
-    }
-    return _execute((source) {
-      return source.creates(data, params: params, args: args);
+      return _execute((source) {
+        return source.creates(data, params: params, args: args);
+      });
     });
   }
 
@@ -317,18 +372,21 @@ abstract class DataRepository<T extends Entity> {
     Object? args,
     bool? lazyMode,
     bool? backupMode,
-  }) async {
-    if (isBackupMode(backupMode)) {
-      if (isLazyMode(lazyMode)) {
-        _backup((source) => source.deleteById(id, params: params, args: args));
-      } else {
-        await _backup((source) {
-          return source.deleteById(id, params: params, args: args);
-        });
+  }) {
+    return _modifier(DataModifiers.deleteById, () async {
+      if (isBackupMode(backupMode)) {
+        if (isLazyMode(lazyMode)) {
+          _backup(
+              (source) => source.deleteById(id, params: params, args: args));
+        } else {
+          await _backup((source) {
+            return source.deleteById(id, params: params, args: args);
+          });
+        }
       }
-    }
-    return _execute((source) {
-      return source.deleteById(id, params: params, args: args);
+      return _execute((source) {
+        return source.deleteById(id, params: params, args: args);
+      });
     });
   }
 
@@ -348,20 +406,22 @@ abstract class DataRepository<T extends Entity> {
     Object? args,
     bool? lazyMode,
     bool? backupMode,
-  }) async {
-    if (isBackupMode(backupMode)) {
-      if (isLazyMode(lazyMode)) {
-        _backup((source) {
-          return source.deleteByIds(ids, params: params, args: args);
-        });
-      } else {
-        await _backup((source) {
-          return source.deleteByIds(ids, params: params, args: args);
-        });
+  }) {
+    return _modifier(DataModifiers.deleteByIds, () async {
+      if (isBackupMode(backupMode)) {
+        if (isLazyMode(lazyMode)) {
+          _backup((source) {
+            return source.deleteByIds(ids, params: params, args: args);
+          });
+        } else {
+          await _backup((source) {
+            return source.deleteByIds(ids, params: params, args: args);
+          });
+        }
       }
-    }
-    return _execute((source) {
-      return source.deleteByIds(ids, params: params, args: args);
+      return _execute((source) {
+        return source.deleteByIds(ids, params: params, args: args);
+      });
     });
   }
 
@@ -379,31 +439,33 @@ abstract class DataRepository<T extends Entity> {
     bool? lazyMode,
     bool? backupMode,
     bool? singletonMode,
-  }) async {
-    final feedback = await DataCacheManager.i.cache(
-      "GET",
-      enabled: isSingletonMode(singletonMode),
-      keyProps: [params, args],
-      callback: () => _execute((source) {
+  }) {
+    return _modifier(DataModifiers.get, () async {
+      final feedback = await DataCacheManager.i.cache(
+        "GET",
+        enabled: isSingletonMode(singletonMode),
+        keyProps: [params, args],
+        callback: () => _execute((source) {
+          return source.get(params: params, args: args);
+        }),
+      );
+      if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
+      final backup = await _backup((source) {
         return source.get(params: params, args: args);
-      }),
-    );
-    if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
-    final backup = await _backup((source) {
-      return source.get(params: params, args: args);
-    });
-    if (backup.isValid) {
-      if (isLazyMode(lazyMode)) {
-        _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
-      } else {
-        await _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
+      });
+      if (backup.isValid) {
+        if (isLazyMode(lazyMode)) {
+          _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        } else {
+          await _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        }
       }
-    }
-    return backup;
+      return backup;
+    });
   }
 
   /// Method to get data by ID with optional data source builder.
@@ -422,31 +484,33 @@ abstract class DataRepository<T extends Entity> {
     bool? lazyMode,
     bool? singletonMode,
     bool? backupMode,
-  }) async {
-    final feedback = await DataCacheManager.i.cache(
-      "GET_BY_ID",
-      enabled: isSingletonMode(singletonMode),
-      keyProps: [id, params, args],
-      callback: () => _execute((source) {
+  }) {
+    return _modifier(DataModifiers.getById, () async {
+      final feedback = await DataCacheManager.i.cache(
+        "GET_BY_ID",
+        enabled: isSingletonMode(singletonMode),
+        keyProps: [id, params, args],
+        callback: () => _execute((source) {
+          return source.getById(id, params: params, args: args);
+        }),
+      );
+      if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
+      final backup = await _backup((source) {
         return source.getById(id, params: params, args: args);
-      }),
-    );
-    if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
-    final backup = await _backup((source) {
-      return source.getById(id, params: params, args: args);
-    });
-    if (backup.isValid) {
-      if (isLazyMode(lazyMode)) {
-        _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
-      } else {
-        await _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
+      });
+      if (backup.isValid) {
+        if (isLazyMode(lazyMode)) {
+          _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        } else {
+          await _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        }
       }
-    }
-    return backup;
+      return backup;
+    });
   }
 
   /// Method to get data by multiple IDs with optional data source builder.
@@ -466,31 +530,33 @@ abstract class DataRepository<T extends Entity> {
     bool? lazyMode,
     bool? backupMode,
     bool? singletonMode,
-  }) async {
-    final feedback = await DataCacheManager.i.cache(
-      "GET_BY_IDS",
-      enabled: isSingletonMode(singletonMode),
-      keyProps: [ids, params, args],
-      callback: () => _execute((source) {
+  }) {
+    return _modifier(DataModifiers.getByIds, () async {
+      final feedback = await DataCacheManager.i.cache(
+        "GET_BY_IDS",
+        enabled: isSingletonMode(singletonMode),
+        keyProps: [ids, params, args],
+        callback: () => _execute((source) {
+          return source.getByIds(ids, params: params, args: args);
+        }),
+      );
+      if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
+      final backup = await _backup((source) {
         return source.getByIds(ids, params: params, args: args);
-      }),
-    );
-    if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
-    final backup = await _backup((source) {
-      return source.getByIds(ids, params: params, args: args);
-    });
-    if (backup.isValid) {
-      if (isLazyMode(lazyMode)) {
-        _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
-      } else {
-        await _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
+      });
+      if (backup.isValid) {
+        if (isLazyMode(lazyMode)) {
+          _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        } else {
+          await _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        }
       }
-    }
-    return backup;
+      return backup;
+    });
   }
 
   /// Method to get data by query with optional data source builder.
@@ -513,12 +579,25 @@ abstract class DataRepository<T extends Entity> {
     bool? lazyMode,
     bool? backupMode,
     bool? singletonMode,
-  }) async {
-    final feedback = await DataCacheManager.i.cache(
-      "GET_BY_QUERY",
-      enabled: isSingletonMode(singletonMode),
-      keyProps: [params, args, queries, selections, sorts, options],
-      callback: () => _execute((source) {
+  }) {
+    return _modifier(DataModifiers.getByQuery, () async {
+      final feedback = await DataCacheManager.i.cache(
+        "GET_BY_QUERY",
+        enabled: isSingletonMode(singletonMode),
+        keyProps: [params, args, queries, selections, sorts, options],
+        callback: () => _execute((source) {
+          return source.getByQuery(
+            params: params,
+            queries: queries,
+            selections: selections,
+            sorts: sorts,
+            options: options,
+            args: args,
+          );
+        }),
+      );
+      if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
+      final backup = await _backup((source) {
         return source.getByQuery(
           params: params,
           queries: queries,
@@ -527,31 +606,20 @@ abstract class DataRepository<T extends Entity> {
           options: options,
           args: args,
         );
-      }),
-    );
-    if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
-    final backup = await _backup((source) {
-      return source.getByQuery(
-        params: params,
-        queries: queries,
-        selections: selections,
-        sorts: sorts,
-        options: options,
-        args: args,
-      );
-    });
-    if (backup.isValid) {
-      if (isLazyMode(lazyMode)) {
-        _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
-      } else {
-        await _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
+      });
+      if (backup.isValid) {
+        if (isLazyMode(lazyMode)) {
+          _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        } else {
+          await _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        }
       }
-    }
-    return backup;
+      return backup;
+    });
   }
 
   /// Stream method to listen for data changes with optional data source builder.
@@ -566,8 +634,10 @@ abstract class DataRepository<T extends Entity> {
     DataFieldParams? params,
     Object? args,
   }) {
-    return _stream((source) {
-      return source.listen(params: params, args: args);
+    return _streamModifier(DataModifiers.listen, () {
+      return _stream((source) {
+        return source.listen(params: params, args: args);
+      });
     });
   }
 
@@ -602,8 +672,10 @@ abstract class DataRepository<T extends Entity> {
     DataFieldParams? params,
     Object? args,
   }) {
-    return _stream((source) {
-      return source.listenById(id, params: params, args: args);
+    return _streamModifier(DataModifiers.listenById, () {
+      return _stream((source) {
+        return source.listenById(id, params: params, args: args);
+      });
     });
   }
 
@@ -622,8 +694,10 @@ abstract class DataRepository<T extends Entity> {
     DataFieldParams? params,
     Object? args,
   }) {
-    return _stream((source) {
-      return source.listenByIds(ids, params: params, args: args);
+    return _streamModifier(DataModifiers.listenByIds, () {
+      return _stream((source) {
+        return source.listenByIds(ids, params: params, args: args);
+      });
     });
   }
 
@@ -645,15 +719,17 @@ abstract class DataRepository<T extends Entity> {
     DataPagingOptions options = const DataPagingOptions(),
     Object? args,
   }) {
-    return _stream((source) {
-      return source.listenByQuery(
-        params: params,
-        queries: queries,
-        selections: selections,
-        sorts: sorts,
-        options: options,
-        args: args,
-      );
+    return _streamModifier(DataModifiers.listenByQuery, () {
+      return _stream((source) {
+        return source.listenByQuery(
+          params: params,
+          queries: queries,
+          selections: selections,
+          sorts: sorts,
+          options: options,
+          args: args,
+        );
+      });
     });
   }
 
@@ -702,26 +778,28 @@ abstract class DataRepository<T extends Entity> {
     Object? args,
     bool? lazyMode,
     bool? backupMode,
-  }) async {
-    final feedback = await _execute((source) {
-      return source.search(checker, params: params, args: args);
-    });
-    if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
-    final backup = await _backup((source) {
-      return source.search(checker, params: params, args: args);
-    });
-    if (backup.isValid) {
-      if (isLazyMode(lazyMode)) {
-        _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
-      } else {
-        await _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
+  }) {
+    return _modifier(DataModifiers.search, () async {
+      final feedback = await _execute((source) {
+        return source.search(checker, params: params, args: args);
+      });
+      if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
+      final backup = await _backup((source) {
+        return source.search(checker, params: params, args: args);
+      });
+      if (backup.isValid) {
+        if (isLazyMode(lazyMode)) {
+          _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        } else {
+          await _execute((source) {
+            return source.creates(backup.result, params: params, args: args);
+          });
+        }
       }
-    }
-    return backup;
+      return backup;
+    });
   }
 
   /// Method to update data by ID with optional data source builder.
@@ -741,20 +819,22 @@ abstract class DataRepository<T extends Entity> {
     Object? args,
     bool? lazyMode,
     bool? backupMode,
-  }) async {
-    if (isBackupMode(backupMode)) {
-      if (isLazyMode(lazyMode)) {
-        _backup((source) {
-          return source.updateById(id, data, params: params, args: args);
-        });
-      } else {
-        await _backup((source) {
-          return source.updateById(id, data, params: params, args: args);
-        });
+  }) {
+    return _modifier(DataModifiers.updateById, () async {
+      if (isBackupMode(backupMode)) {
+        if (isLazyMode(lazyMode)) {
+          _backup((source) {
+            return source.updateById(id, data, params: params, args: args);
+          });
+        } else {
+          await _backup((source) {
+            return source.updateById(id, data, params: params, args: args);
+          });
+        }
       }
-    }
-    return _execute((source) {
-      return source.updateById(id, data, params: params, args: args);
+      return _execute((source) {
+        return source.updateById(id, data, params: params, args: args);
+      });
     });
   }
 
@@ -777,20 +857,22 @@ abstract class DataRepository<T extends Entity> {
     Object? args,
     bool? lazyMode,
     bool? backupMode,
-  }) async {
-    if (isBackupMode(backupMode)) {
-      if (isLazyMode(lazyMode)) {
-        _backup((source) {
-          return source.updateByIds(updates, params: params, args: args);
-        });
-      } else {
-        await _backup((source) {
-          return source.updateByIds(updates, params: params, args: args);
-        });
+  }) {
+    return _modifier(DataModifiers.updateByIds, () async {
+      if (isBackupMode(backupMode)) {
+        if (isLazyMode(lazyMode)) {
+          _backup((source) {
+            return source.updateByIds(updates, params: params, args: args);
+          });
+        } else {
+          await _backup((source) {
+            return source.updateByIds(updates, params: params, args: args);
+          });
+        }
       }
-    }
-    return _execute((source) {
-      return source.updateByIds(updates, params: params, args: args);
+      return _execute((source) {
+        return source.updateByIds(updates, params: params, args: args);
+      });
     });
   }
 }

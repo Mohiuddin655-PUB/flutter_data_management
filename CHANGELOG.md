@@ -1,3 +1,7 @@
+## 2.2.1
+
+* Add modifier to modify chain data
+
 ## 2.2.0
 
 * Code reduction 
