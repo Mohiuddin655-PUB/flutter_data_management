@@ -73,22 +73,6 @@ class DataQuery {
 
   @override
   String toString() {
-    final type = [
-      if (isEqualTo != null) "$field==$isEqualTo",
-      if (isNotEqualTo != null) "$field!=$isNotEqualTo",
-      if (isLessThan != null) "$field<$isLessThan",
-      if (isLessThanOrEqualTo != null) "$field<=$isLessThanOrEqualTo",
-      if (isGreaterThan != null) "$field>$isGreaterThan",
-      if (isGreaterThanOrEqualTo != null) "$field>=$isGreaterThanOrEqualTo",
-      if (arrayContains != null) "$field.contains($arrayContains)",
-      if (arrayNotContains != null) "!$field.contains($arrayNotContains)",
-      if (arrayContainsAny != null) "$field.any($arrayContainsAny.contains)",
-      if (arrayNotContainsAny != null)
-        "$field.where((e)=>!$arrayNotContainsAny.contains(e))",
-      if (whereIn != null) "$field.where($whereIn.contains)",
-      if (whereNotIn != null) "$field.where((e)=>!$whereNotIn.contains(e))",
-      if (isNull != null) "$field==$isNull",
-    ].where(whereIn!.contains).toList();
-    return "$DataQuery#$hashCode(${type.join(", ")})";
+    return "$DataQuery(field: $field, isEqualTo: $isEqualTo, isNotEqualTo: $isNotEqualTo, isLessThan: $isLessThan, isLessThanOrEqualTo: $isLessThanOrEqualTo, isGreaterThan: $isGreaterThan, isGreaterThanOrEqualTo: $isGreaterThanOrEqualTo, arrayContains: $arrayContains, arrayNotContains: $arrayNotContains, arrayContainsAny: $arrayContainsAny, arrayNotContainsAny: $arrayNotContainsAny, whereIn: $whereIn, whereNotIn: $whereNotIn, isNull: $isNull)";
   }
 }

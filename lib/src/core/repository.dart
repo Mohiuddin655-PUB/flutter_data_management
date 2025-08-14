@@ -45,7 +45,7 @@ enum DataModifiers {
 /// final DataRepository<Post> postRepository = LocalDataRepository<Post>();
 /// ```
 
-abstract class DataRepository<T extends Entity> {
+class DataRepository<T extends Entity> {
   final String? id;
   final DatabaseType _type;
   final bool backupMode;

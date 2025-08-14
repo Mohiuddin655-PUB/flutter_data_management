@@ -46,4 +46,7 @@ class DataFieldValue {
   factory DataFieldValue.increment(num value) {
     return DataFieldValue(value, DataFieldValues.increment);
   }
+
+  @override
+  String toString() => "$DataFieldValue(value: $value, type: $type)";
 }

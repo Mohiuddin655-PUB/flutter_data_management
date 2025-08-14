@@ -16,5 +16,5 @@ class UpdatingInfo {
   }
 
   @override
-  String toString() => "$UpdatingInfo#$hashCode(id: $id, data: $data)";
+  String toString() => "$UpdatingInfo(id: $id, data: $data)";
 }

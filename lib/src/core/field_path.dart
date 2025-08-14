@@ -21,4 +21,7 @@ class DataFieldPath {
   static DataFieldPath get documentId {
     return const DataFieldPath(null, DataFieldPaths.documentId);
   }
+
+  @override
+  String toString() => "$DataFieldPath(field: $field, type: $type)";
 }

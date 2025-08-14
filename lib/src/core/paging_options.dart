@@ -40,6 +40,6 @@ class DataPagingOptions {
 
   @override
   String toString() {
-    return "$DataPagingOptions#$hashCode(fetchingSize: $fetchingSize, initialSize: $initialSize, fetchFromLast: $fetchFromLast)";
+    return "$DataPagingOptions(fetchingSize: $fetchingSize, initialSize: $initialSize, fetchFromLast: $fetchFromLast)";
   }
 }

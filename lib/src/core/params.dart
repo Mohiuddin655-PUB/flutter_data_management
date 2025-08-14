@@ -29,7 +29,7 @@ class KeyParams extends DataFieldParams {
   }
 
   @override
-  String toString() => "$KeyParams#$hashCode($values)";
+  String toString() => "$KeyParams($values)";
 }
 
 /// Replaces placeholders in the given [path] using values from the [params] iterable.
@@ -54,7 +54,7 @@ class IterableParams extends DataFieldParams {
   }
 
   @override
-  String toString() => "$IterableParams#$hashCode($values)";
+  String toString() => "$IterableParams($values)";
 }
 
 extension DataFieldParamsHelper on DataFieldParams? {

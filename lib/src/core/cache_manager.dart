@@ -13,21 +13,15 @@ class DataCacheManager {
 
   DataCacheManager._();
 
-  String hashKey(
-    Type type,
-    String name, [
-    Iterable<Object?> props = const [],
-  ]) {
-    if (props.isEmpty) return "$name:$type";
-    final code = props
-        .map((e) {
-          if (e == null) return '';
-          return e.toString();
-        })
-        .where((e) => e.isNotEmpty)
-        .join("_")
-        .hashCode;
-    return "$name:$type#$code";
+  String hashKey(Type type, String name, [Iterable<Object?> props = const []]) {
+    final key = [
+      name,
+      type.toString(),
+      ...props.where((e) => e != null),
+    ].join(':');
+    final hash =
+        key.codeUnits.fold<int>(0, (h, c) => (31 * h + c) & 0x7fffffff);
+    return '$name:$type#$hash';
   }
 
   Future<Response<T>> cache<T extends Object>(

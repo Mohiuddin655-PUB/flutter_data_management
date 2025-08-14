@@ -1,3 +1,7 @@
+## 2.2.2
+
+* Query bug fixed
+
 ## 2.2.1
 
 * Add modifier to modify chain data

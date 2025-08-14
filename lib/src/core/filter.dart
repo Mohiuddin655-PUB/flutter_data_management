@@ -69,4 +69,9 @@ class DataFilter {
 
   const DataFilter.or(List<DataFilter> filters)
       : this._(filters, type: DataFilters.or);
+
+  @override
+  String toString() {
+    return "$DataFilter(type: $type, field: $field, isEqualTo: $isEqualTo, isNotEqualTo: $isNotEqualTo, isLessThan: $isLessThan, isLessThanOrEqualTo: $isLessThanOrEqualTo, isGreaterThan: $isGreaterThan, isGreaterThanOrEqualTo: $isGreaterThanOrEqualTo, arrayContains: $arrayContains, arrayNotContains: $arrayNotContains, arrayContainsAny: $arrayContainsAny, arrayNotContainsAny: $arrayNotContainsAny, whereIn: $whereIn, whereNotIn: $whereNotIn, isNull: $isNull)";
+  }
 }
