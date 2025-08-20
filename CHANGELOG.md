@@ -1,3 +1,8 @@
+## 2.3.0
+
+* Improve batch system and clean unnecessary code
+* Multi-reference system support to create and update references
+
 ## 2.2.2
 
 * Query bug fixed
@@ -8,7 +13,7 @@
 
 ## 2.2.0
 
-* Code reduction 
+* Code reduction
 * Reuse repository
 * Improved BackupMode, SingletonMode, CacheMode, and LazyMode
 

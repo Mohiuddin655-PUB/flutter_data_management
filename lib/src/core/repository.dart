@@ -1,36 +1,14 @@
 import 'package:flutter_entity/entity.dart';
 
 import 'cache_manager.dart';
-import 'configs.dart';
 import 'checker.dart';
+import 'configs.dart';
+import 'database_type.dart';
+import 'modifiers.dart';
+import 'source.dart';
 import 'updating_info.dart';
-import '../sources/base.dart';
-import '../sources/local.dart';
-import '../sources/remote.dart';
 
 typedef FutureConnectivityCallback = Future<bool> Function();
-
-enum DatabaseType { local, remote }
-
-enum DataModifiers {
-  checkById,
-  clear,
-  create,
-  creates,
-  deleteById,
-  deleteByIds,
-  get,
-  getById,
-  getByIds,
-  getByQuery,
-  listen,
-  listenById,
-  listenByIds,
-  listenByQuery,
-  search,
-  updateById,
-  updateByIds
-}
 
 /// ## Abstract class representing a generic data repository with methods for CRUD operations.
 ///
@@ -201,26 +179,38 @@ class DataRepository<T extends Entity> {
   Future<Response<T>> checkById(
     String id, {
     DataFieldParams? params,
-    Object? args,
+    bool merge = true,
+    bool? createRefs,
+    bool resolveRefs = false,
     bool? lazyMode,
     bool? backupMode,
   }) {
     return _modifier(DataModifiers.checkById, () async {
       final feedback = await _execute((source) {
-        return source.checkById(id, params: params, args: args);
+        return source.checkById(id, params: params, resolveRefs: resolveRefs);
       });
       if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
       final backup = await _backup((source) {
-        return source.checkById(id, params: params, args: args);
+        return source.checkById(id, params: params, resolveRefs: resolveRefs);
       });
       if (backup.isValid) {
         if (isLazyMode(lazyMode)) {
           _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         } else {
           await _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         }
       }
@@ -238,20 +228,37 @@ class DataRepository<T extends Entity> {
   /// ```
   Future<Response<T>> clear({
     DataFieldParams? params,
-    Object? args,
+    bool? resolveRefs,
+    bool deleteRefs = false,
     bool? lazyMode,
     bool? backupMode,
   }) {
     return _modifier(DataModifiers.clear, () async {
       if (isBackupMode(backupMode)) {
         if (isLazyMode(lazyMode)) {
-          _backup((source) => source.clear(params: params, args: args));
+          _backup((source) {
+            return source.clear(
+              params: params,
+              resolveRefs: resolveRefs,
+              deleteRefs: deleteRefs,
+            );
+          });
         } else {
-          await _backup((source) => source.clear(params: params, args: args));
+          await _backup((source) {
+            return source.clear(
+              params: params,
+              resolveRefs: resolveRefs,
+              deleteRefs: deleteRefs,
+            );
+          });
         }
       }
       return _execute((source) {
-        return source.clear(params: params, args: args);
+        return source.clear(
+          params: params,
+          resolveRefs: resolveRefs,
+          deleteRefs: deleteRefs,
+        );
       });
     });
   }
@@ -266,29 +273,16 @@ class DataRepository<T extends Entity> {
   /// ```
   Future<Response<int>> count({
     DataFieldParams? params,
-    Object? args,
-    bool? lazyMode,
     bool? backupMode,
   }) async {
     final feedback = await _execute((source) {
-      return source.count(params: params, args: args);
+      return source.count(params: params);
     });
     if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
     final backup = await _backup((source) {
-      return source.get(params: params, args: args);
+      return source.count(params: params);
     });
-    if (backup.isValid) {
-      if (isLazyMode(lazyMode)) {
-        _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
-      } else {
-        await _execute((source) {
-          return source.creates(backup.result, params: params, args: args);
-        });
-      }
-    }
-    return feedback.copy(data: backup.result.length);
+    return feedback.copy(data: backup.data);
   }
 
   /// Method to create data with optional data source builder.
@@ -304,22 +298,73 @@ class DataRepository<T extends Entity> {
   Future<Response<T>> create(
     T data, {
     DataFieldParams? params,
-    Object? args,
+    bool merge = true,
+    bool createRefs = false,
+    bool? lazyMode,
+    bool? backupMode,
+  }) {
+    return createById(
+      data.id,
+      data.filtered,
+      params: params,
+      merge: merge,
+      createRefs: createRefs,
+      lazyMode: lazyMode,
+      backupMode: backupMode,
+    );
+  }
+
+  /// Method to create data with optional data source builder.
+  ///
+  /// Example:
+  /// ```dart
+  /// T newData = //...;
+  /// repository.create(
+  ///   newData,
+  ///   params: Params({"field1": "value1", "field2": "value2"}),
+  /// );
+  /// ```
+  Future<Response<T>> createById(
+    String id,
+    Map<String, dynamic> data, {
+    DataFieldParams? params,
+    bool merge = true,
+    bool createRefs = false,
     bool? lazyMode,
     bool? backupMode,
   }) {
     return _modifier(DataModifiers.create, () async {
       if (isBackupMode(backupMode)) {
         if (isLazyMode(lazyMode)) {
-          _backup((source) => source.create(data, params: params, args: args));
+          _backup((source) {
+            return source.create(
+              id,
+              data,
+              params: params,
+              createRefs: createRefs,
+              merge: merge,
+            );
+          });
         } else {
           await _backup((source) {
-            return source.create(data, params: params, args: args);
+            return source.create(
+              id,
+              data,
+              params: params,
+              createRefs: createRefs,
+              merge: merge,
+            );
           });
         }
       }
       return _execute((source) {
-        return source.create(data, params: params, args: args);
+        return source.create(
+          id,
+          data,
+          params: params,
+          createRefs: createRefs,
+          merge: merge,
+        );
       });
     });
   }
@@ -335,24 +380,70 @@ class DataRepository<T extends Entity> {
   /// );
   /// ```
   Future<Response<T>> creates(
-    List<T> data, {
+    Iterable<T> data, {
     DataFieldParams? params,
-    Object? args,
+    bool merge = true,
+    bool createRefs = false,
+    bool? lazyMode,
+    bool? backupMode,
+  }) {
+    return createByWriters(
+      data.map((e) => DataWriter(id: e.id, data: e.filtered)),
+      params: params,
+      merge: merge,
+      createRefs: createRefs,
+      lazyMode: lazyMode,
+      backupMode: backupMode,
+    );
+  }
+
+  /// Method to create multiple data entries with optional data source builder.
+  ///
+  /// Example:
+  /// ```dart
+  /// List<T> newDataList = //...;
+  /// repository.createByWriters(
+  ///   newDataList,
+  ///   params: Params({"field1": "value1", "field2": "value2"}),
+  /// );
+  /// ```
+  Future<Response<T>> createByWriters(
+    Iterable<DataWriter> writers, {
+    DataFieldParams? params,
+    bool merge = true,
+    bool createRefs = false,
     bool? lazyMode,
     bool? backupMode,
   }) {
     return _modifier(DataModifiers.creates, () async {
       if (isBackupMode(backupMode)) {
         if (isLazyMode(lazyMode)) {
-          _backup((source) => source.creates(data, params: params, args: args));
+          _backup((source) {
+            return source.creates(
+              writers,
+              params: params,
+              merge: merge,
+              createRefs: createRefs,
+            );
+          });
         } else {
           await _backup((source) {
-            return source.creates(data, params: params, args: args);
+            return source.creates(
+              writers,
+              params: params,
+              merge: merge,
+              createRefs: createRefs,
+            );
           });
         }
       }
       return _execute((source) {
-        return source.creates(data, params: params, args: args);
+        return source.creates(
+          writers,
+          params: params,
+          merge: merge,
+          createRefs: createRefs,
+        );
       });
     });
   }
@@ -369,23 +460,40 @@ class DataRepository<T extends Entity> {
   Future<Response<T>> deleteById(
     String id, {
     DataFieldParams? params,
-    Object? args,
+    bool? resolveRefs,
+    bool deleteRefs = false,
     bool? lazyMode,
     bool? backupMode,
   }) {
     return _modifier(DataModifiers.deleteById, () async {
       if (isBackupMode(backupMode)) {
         if (isLazyMode(lazyMode)) {
-          _backup(
-              (source) => source.deleteById(id, params: params, args: args));
+          _backup((source) {
+            return source.deleteById(
+              id,
+              params: params,
+              resolveRefs: resolveRefs,
+              deleteRefs: deleteRefs,
+            );
+          });
         } else {
           await _backup((source) {
-            return source.deleteById(id, params: params, args: args);
+            return source.deleteById(
+              id,
+              params: params,
+              resolveRefs: resolveRefs,
+              deleteRefs: deleteRefs,
+            );
           });
         }
       }
       return _execute((source) {
-        return source.deleteById(id, params: params, args: args);
+        return source.deleteById(
+          id,
+          params: params,
+          resolveRefs: resolveRefs,
+          deleteRefs: deleteRefs,
+        );
       });
     });
   }
@@ -401,9 +509,10 @@ class DataRepository<T extends Entity> {
   /// );
   /// ```
   Future<Response<T>> deleteByIds(
-    List<String> ids, {
+    Iterable<String> ids, {
     DataFieldParams? params,
-    Object? args,
+    bool? resolveRefs,
+    bool deleteRefs = false,
     bool? lazyMode,
     bool? backupMode,
   }) {
@@ -411,16 +520,31 @@ class DataRepository<T extends Entity> {
       if (isBackupMode(backupMode)) {
         if (isLazyMode(lazyMode)) {
           _backup((source) {
-            return source.deleteByIds(ids, params: params, args: args);
+            return source.deleteByIds(
+              ids,
+              params: params,
+              resolveRefs: resolveRefs,
+              deleteRefs: deleteRefs,
+            );
           });
         } else {
           await _backup((source) {
-            return source.deleteByIds(ids, params: params, args: args);
+            return source.deleteByIds(
+              ids,
+              params: params,
+              resolveRefs: resolveRefs,
+              deleteRefs: deleteRefs,
+            );
           });
         }
       }
       return _execute((source) {
-        return source.deleteByIds(ids, params: params, args: args);
+        return source.deleteByIds(
+          ids,
+          params: params,
+          resolveRefs: resolveRefs,
+          deleteRefs: deleteRefs,
+        );
       });
     });
   }
@@ -435,7 +559,10 @@ class DataRepository<T extends Entity> {
   /// ```
   Future<Response<T>> get({
     DataFieldParams? params,
-    Object? args,
+    bool onlyUpdates = false,
+    bool resolveRefs = false,
+    bool? createRefs,
+    bool merge = true,
     bool? lazyMode,
     bool? backupMode,
     bool? singletonMode,
@@ -444,23 +571,41 @@ class DataRepository<T extends Entity> {
       final feedback = await DataCacheManager.i.cache(
         "GET",
         enabled: isSingletonMode(singletonMode),
-        keyProps: [params, args],
+        keyProps: [params, onlyUpdates, resolveRefs],
         callback: () => _execute((source) {
-          return source.get(params: params, args: args);
+          return source.get(
+            params: params,
+            resolveRefs: resolveRefs,
+            onlyUpdates: onlyUpdates,
+          );
         }),
       );
       if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
       final backup = await _backup((source) {
-        return source.get(params: params, args: args);
+        return source.get(
+          params: params,
+          resolveRefs: resolveRefs,
+          onlyUpdates: onlyUpdates,
+        );
       });
       if (backup.isValid) {
         if (isLazyMode(lazyMode)) {
           _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         } else {
           await _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         }
       }
@@ -480,7 +625,9 @@ class DataRepository<T extends Entity> {
   Future<Response<T>> getById(
     String id, {
     DataFieldParams? params,
-    Object? args,
+    bool resolveRefs = false,
+    bool? createRefs,
+    bool merge = true,
     bool? lazyMode,
     bool? singletonMode,
     bool? backupMode,
@@ -489,23 +636,33 @@ class DataRepository<T extends Entity> {
       final feedback = await DataCacheManager.i.cache(
         "GET_BY_ID",
         enabled: isSingletonMode(singletonMode),
-        keyProps: [id, params, args],
+        keyProps: [id, params, resolveRefs],
         callback: () => _execute((source) {
-          return source.getById(id, params: params, args: args);
+          return source.getById(id, params: params, resolveRefs: resolveRefs);
         }),
       );
       if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
       final backup = await _backup((source) {
-        return source.getById(id, params: params, args: args);
+        return source.getById(id, params: params, resolveRefs: resolveRefs);
       });
       if (backup.isValid) {
         if (isLazyMode(lazyMode)) {
           _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         } else {
           await _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         }
       }
@@ -524,9 +681,11 @@ class DataRepository<T extends Entity> {
   /// );
   /// ```
   Future<Response<T>> getByIds(
-    List<String> ids, {
+    Iterable<String> ids, {
     DataFieldParams? params,
-    Object? args,
+    bool resolveRefs = false,
+    bool? createRefs,
+    bool merge = true,
     bool? lazyMode,
     bool? backupMode,
     bool? singletonMode,
@@ -535,23 +694,33 @@ class DataRepository<T extends Entity> {
       final feedback = await DataCacheManager.i.cache(
         "GET_BY_IDS",
         enabled: isSingletonMode(singletonMode),
-        keyProps: [ids, params, args],
+        keyProps: [...ids, params, resolveRefs],
         callback: () => _execute((source) {
-          return source.getByIds(ids, params: params, args: args);
+          return source.getByIds(ids, params: params, resolveRefs: resolveRefs);
         }),
       );
       if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
       final backup = await _backup((source) {
-        return source.getByIds(ids, params: params, args: args);
+        return source.getByIds(ids, params: params, resolveRefs: resolveRefs);
       });
       if (backup.isValid) {
         if (isLazyMode(lazyMode)) {
           _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         } else {
           await _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         }
       }
@@ -571,11 +740,14 @@ class DataRepository<T extends Entity> {
   /// ```
   Future<Response<T>> getByQuery({
     DataFieldParams? params,
-    List<DataQuery> queries = const [],
-    List<DataSelection> selections = const [],
-    List<DataSorting> sorts = const [],
+    Iterable<DataQuery> queries = const [],
+    Iterable<DataSelection> selections = const [],
+    Iterable<DataSorting> sorts = const [],
     DataPagingOptions options = const DataPagingOptions(),
-    Object? args,
+    bool onlyUpdates = false,
+    bool resolveRefs = false,
+    bool? createRefs,
+    bool merge = true,
     bool? lazyMode,
     bool? backupMode,
     bool? singletonMode,
@@ -584,7 +756,15 @@ class DataRepository<T extends Entity> {
       final feedback = await DataCacheManager.i.cache(
         "GET_BY_QUERY",
         enabled: isSingletonMode(singletonMode),
-        keyProps: [params, args, queries, selections, sorts, options],
+        keyProps: [
+          params,
+          ...queries,
+          ...selections,
+          ...sorts,
+          options,
+          onlyUpdates,
+          resolveRefs,
+        ],
         callback: () => _execute((source) {
           return source.getByQuery(
             params: params,
@@ -592,7 +772,8 @@ class DataRepository<T extends Entity> {
             selections: selections,
             sorts: sorts,
             options: options,
-            args: args,
+            onlyUpdates: onlyUpdates,
+            resolveRefs: resolveRefs,
           );
         }),
       );
@@ -604,17 +785,28 @@ class DataRepository<T extends Entity> {
           selections: selections,
           sorts: sorts,
           options: options,
-          args: args,
+          onlyUpdates: onlyUpdates,
+          resolveRefs: resolveRefs,
         );
       });
       if (backup.isValid) {
         if (isLazyMode(lazyMode)) {
           _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         } else {
           await _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         }
       }
@@ -632,11 +824,16 @@ class DataRepository<T extends Entity> {
   /// ```
   Stream<Response<T>> listen({
     DataFieldParams? params,
-    Object? args,
+    bool onlyUpdates = false,
+    bool resolveRefs = false,
   }) {
     return _streamModifier(DataModifiers.listen, () {
       return _stream((source) {
-        return source.listen(params: params, args: args);
+        return source.listen(
+          params: params,
+          resolveRefs: resolveRefs,
+          onlyUpdates: onlyUpdates,
+        );
       });
     });
   }
@@ -651,10 +848,10 @@ class DataRepository<T extends Entity> {
   /// ```
   Stream<Response<int>> listenCount({
     DataFieldParams? params,
-    Object? args,
+    Duration? interval,
   }) {
     return _stream((source) {
-      return source.listenCount(params: params, args: args);
+      return source.listenCount(params: params, interval: interval);
     });
   }
 
@@ -670,11 +867,11 @@ class DataRepository<T extends Entity> {
   Stream<Response<T>> listenById(
     String id, {
     DataFieldParams? params,
-    Object? args,
+    bool resolveRefs = false,
   }) {
     return _streamModifier(DataModifiers.listenById, () {
       return _stream((source) {
-        return source.listenById(id, params: params, args: args);
+        return source.listenById(id, params: params, resolveRefs: resolveRefs);
       });
     });
   }
@@ -690,13 +887,17 @@ class DataRepository<T extends Entity> {
   /// );
   /// ```
   Stream<Response<T>> listenByIds(
-    List<String> ids, {
+    Iterable<String> ids, {
     DataFieldParams? params,
-    Object? args,
+    bool resolveRefs = false,
   }) {
     return _streamModifier(DataModifiers.listenByIds, () {
       return _stream((source) {
-        return source.listenByIds(ids, params: params, args: args);
+        return source.listenByIds(
+          ids,
+          params: params,
+          resolveRefs: resolveRefs,
+        );
       });
     });
   }
@@ -713,11 +914,12 @@ class DataRepository<T extends Entity> {
   /// ```
   Stream<Response<T>> listenByQuery({
     DataFieldParams? params,
-    List<DataQuery> queries = const [],
-    List<DataSelection> selections = const [],
-    List<DataSorting> sorts = const [],
+    Iterable<DataQuery> queries = const [],
+    Iterable<DataSelection> selections = const [],
+    Iterable<DataSorting> sorts = const [],
     DataPagingOptions options = const DataPagingOptions(),
-    Object? args,
+    bool onlyUpdates = false,
+    bool resolveRefs = false,
   }) {
     return _streamModifier(DataModifiers.listenByQuery, () {
       return _stream((source) {
@@ -727,7 +929,8 @@ class DataRepository<T extends Entity> {
           selections: selections,
           sorts: sorts,
           options: options,
-          args: args,
+          onlyUpdates: onlyUpdates,
+          resolveRefs: resolveRefs,
         );
       });
     });
@@ -743,21 +946,38 @@ class DataRepository<T extends Entity> {
   /// ```
   Future<void> restore({
     DataFieldParams? params,
-    Object? args,
+    bool onlyUpdates = false,
+    bool? resolveRefs,
+    bool createRefs = false,
+    bool merge = true,
     bool? lazyMode,
   }) async {
     if (!restoreMode || !isBackupMode(backupMode)) return;
     final backup = await _backup((source) {
-      return source.get(params: params, args: args);
+      return source.get(
+        params: params,
+        resolveRefs: resolveRefs ?? createRefs,
+        onlyUpdates: onlyUpdates,
+      );
     });
     if (!backup.isValid) return;
     if (isLazyMode(lazyMode)) {
       _execute((source) {
-        return source.creates(backup.result, params: params, args: args);
+        return source.creates(
+          backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+          params: params,
+          createRefs: createRefs,
+          merge: merge,
+        );
       });
     } else {
       await _execute((source) {
-        return source.creates(backup.result, params: params, args: args);
+        return source.creates(
+          backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+          params: params,
+          createRefs: createRefs,
+          merge: merge,
+        );
       });
     }
   }
@@ -775,26 +995,38 @@ class DataRepository<T extends Entity> {
   Future<Response<T>> search(
     Checker checker, {
     DataFieldParams? params,
-    Object? args,
+    bool resolveRefs = false,
+    bool? createRefs,
+    bool merge = true,
     bool? lazyMode,
     bool? backupMode,
   }) {
     return _modifier(DataModifiers.search, () async {
       final feedback = await _execute((source) {
-        return source.search(checker, params: params, args: args);
+        return source.search(checker, params: params, resolveRefs: resolveRefs);
       });
       if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
       final backup = await _backup((source) {
-        return source.search(checker, params: params, args: args);
+        return source.search(checker, params: params, resolveRefs: resolveRefs);
       });
       if (backup.isValid) {
         if (isLazyMode(lazyMode)) {
           _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         } else {
           await _execute((source) {
-            return source.creates(backup.result, params: params, args: args);
+            return source.creates(
+              backup.result.map((e) => DataWriter(id: e.id, data: e.filtered)),
+              params: params,
+              createRefs: createRefs ?? resolveRefs,
+              merge: merge,
+            );
           });
         }
       }
@@ -816,7 +1048,8 @@ class DataRepository<T extends Entity> {
     String id,
     Map<String, dynamic> data, {
     DataFieldParams? params,
-    Object? args,
+    bool? resolveRefs,
+    bool updateRefs = false,
     bool? lazyMode,
     bool? backupMode,
   }) {
@@ -824,16 +1057,34 @@ class DataRepository<T extends Entity> {
       if (isBackupMode(backupMode)) {
         if (isLazyMode(lazyMode)) {
           _backup((source) {
-            return source.updateById(id, data, params: params, args: args);
+            return source.updateById(
+              id,
+              data,
+              params: params,
+              resolveRefs: resolveRefs,
+              updateRefs: updateRefs,
+            );
           });
         } else {
           await _backup((source) {
-            return source.updateById(id, data, params: params, args: args);
+            return source.updateById(
+              id,
+              data,
+              params: params,
+              resolveRefs: resolveRefs,
+              updateRefs: updateRefs,
+            );
           });
         }
       }
       return _execute((source) {
-        return source.updateById(id, data, params: params, args: args);
+        return source.updateById(
+          id,
+          data,
+          params: params,
+          resolveRefs: resolveRefs,
+          updateRefs: updateRefs,
+        );
       });
     });
   }
@@ -852,9 +1103,10 @@ class DataRepository<T extends Entity> {
   /// );
   /// ```
   Future<Response<T>> updateByIds(
-    List<UpdatingInfo> updates, {
+    Iterable<DataWriter> updates, {
     DataFieldParams? params,
-    Object? args,
+    bool? resolveRefs,
+    bool updateRefs = false,
     bool? lazyMode,
     bool? backupMode,
   }) {
@@ -862,16 +1114,31 @@ class DataRepository<T extends Entity> {
       if (isBackupMode(backupMode)) {
         if (isLazyMode(lazyMode)) {
           _backup((source) {
-            return source.updateByIds(updates, params: params, args: args);
+            return source.updateByIds(
+              updates,
+              params: params,
+              resolveRefs: resolveRefs,
+              updateRefs: updateRefs,
+            );
           });
         } else {
           await _backup((source) {
-            return source.updateByIds(updates, params: params, args: args);
+            return source.updateByIds(
+              updates,
+              params: params,
+              resolveRefs: resolveRefs,
+              updateRefs: updateRefs,
+            );
           });
         }
       }
       return _execute((source) {
-        return source.updateByIds(updates, params: params, args: args);
+        return source.updateByIds(
+          updates,
+          params: params,
+          resolveRefs: resolveRefs,
+          updateRefs: updateRefs,
+        );
       });
     });
   }

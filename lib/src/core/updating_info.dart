@@ -1,8 +1,8 @@
-class UpdatingInfo {
+class DataWriter {
   final String id;
   final Map<String, dynamic> data;
 
-  const UpdatingInfo({
+  const DataWriter({
     required this.id,
     required this.data,
   });
@@ -12,9 +12,9 @@ class UpdatingInfo {
 
   @override
   bool operator ==(Object other) {
-    return other is UpdatingInfo && other.id == id && other.data == data;
+    return other is DataWriter && other.id == id && other.data == data;
   }
 
   @override
-  String toString() => "$UpdatingInfo(id: $id, data: $data)";
+  String toString() => "$DataWriter(id: $id, data: $data)";
 }

@@ -1,0 +1,21 @@
+enum DataModifiers {
+  checkById,
+  clear,
+  count,
+  create,
+  creates,
+  deleteById,
+  deleteByIds,
+  get,
+  getById,
+  getByIds,
+  getByQuery,
+  listen,
+  listenById,
+  listenByIds,
+  listenByQuery,
+  listenCount,
+  search,
+  updateById,
+  updateByIds
+}

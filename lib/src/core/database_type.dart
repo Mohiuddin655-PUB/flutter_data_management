@@ -1,0 +1,1 @@
+enum DatabaseType { local, remote }

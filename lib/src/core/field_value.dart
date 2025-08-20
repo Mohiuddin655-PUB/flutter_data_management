@@ -48,5 +48,16 @@ class DataFieldValue {
   }
 
   @override
+  int get hashCode => value.hashCode ^ type.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is DataFieldValue &&
+        other.value == value &&
+        other.type == type;
+  }
+
+  @override
   String toString() => "$DataFieldValue(value: $value, type: $type)";
 }
