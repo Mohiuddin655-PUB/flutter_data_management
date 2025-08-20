@@ -11,10 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  async: ^2.13.0
   encrypt: ^5.0.3
   flutter_entity: ^1.2.0
-  cloud_firestore: ^6.0.0
-  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
