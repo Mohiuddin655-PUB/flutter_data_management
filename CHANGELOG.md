@@ -1,3 +1,7 @@
+## 2.3.1
+
+* Flutter entity lib upgrade
+
 ## 2.3.0
 
 * Improve batch system and clean unnecessary code

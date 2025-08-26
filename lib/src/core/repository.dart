@@ -282,7 +282,7 @@ class DataRepository<T extends Entity> {
     final backup = await _backup((source) {
       return source.count(params: params);
     });
-    return feedback.copy(data: backup.data);
+    return feedback.copyWith(data: backup.data);
   }
 
   /// Method to create data with optional data source builder.

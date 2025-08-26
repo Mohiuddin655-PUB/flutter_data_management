@@ -173,7 +173,7 @@ abstract class DataSource<T extends Entity> {
             params: params,
             deleteRefs: deleteRefs,
           ).then((deleted) {
-            return deleted.copy(
+            return deleted.copyWith(
               backups: value.docs.map((e) => build(e)).toList(),
               snapshot: value.snapshot,
               status: Status.ok,
