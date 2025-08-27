@@ -1,3 +1,4 @@
+## 2.3.2
 ## 2.3.1
 
 * Flutter entity lib upgrade
