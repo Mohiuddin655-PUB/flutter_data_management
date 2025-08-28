@@ -269,19 +269,36 @@ class DataOperation {
     bool merge = true,
   ]) {
     final result = <String, dynamic>{};
-    data.forEach((key, value) {
-      if (key.startsWith('@') && value is Map && value["path"] != null) {
-        final ref = value["path"];
-        final create = value["create"];
-        final update = value["update"];
-        if (create is Map && create.isNotEmpty) {
-          batch.set(ref, Map<String, dynamic>.from(create), merge);
-        } else if (update is Map && update.isNotEmpty) {
-          batch.update(ref, Map<String, dynamic>.from(update));
+    void ops(String ref, Map<String, dynamic> c, Map<String, dynamic> u) {
+      if (c.isNotEmpty) {
+        batch.set(ref, Map<String, dynamic>.from(c), merge);
+      } else if (u.isNotEmpty) {
+        batch.update(ref, Map<String, dynamic>.from(u));
+      }
+    }
+
+    data.forEach((k, v) {
+      if (k.startsWith('@')) {
+        if (v is Map && v["path"] != null) {
+          final ref = v["path"];
+          final create = v["create"];
+          final update = v["update"];
+          ops(ref, create, update);
+          result[k] = ref;
+        } else if (v is DataFieldValue && v.value is DataFieldWriteRef) {
+          final data = v.value as DataFieldWriteRef;
+          final ref = data.path;
+          ops(ref, data.create, data.update);
+          result[k] = ref;
+        } else if (v is DataFieldWriteRef && v.isNotEmpty) {
+          final ref = v.path;
+          ops(ref, v.create, v.update);
+          result[k] = ref;
+        } else {
+          result[k] = v;
         }
-        result[key] = ref;
       } else {
-        result[key] = value;
+        result[k] = v;
       }
     });
     return result;

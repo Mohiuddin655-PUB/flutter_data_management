@@ -21,6 +21,45 @@ enum DataFieldValues {
   bool get isNone => this == none;
 }
 
+class DataFieldWriteRef {
+  final String path;
+  final Map<String, dynamic> create;
+  final Map<String, dynamic> update;
+
+  bool get isNotEmpty {
+    return path.isNotEmpty && (create.isNotEmpty || update.isNotEmpty);
+  }
+
+  const DataFieldWriteRef.create(this.path, this.create) : update = const {};
+
+  const DataFieldWriteRef.update(this.path, this.update) : create = const {};
+
+  Map<String, dynamic> get metadata {
+    return {
+      "path": path,
+      if (create.isNotEmpty) "create": create,
+      if (update.isNotEmpty) "update": update,
+    };
+  }
+
+  @override
+  int get hashCode => path.hashCode ^ create.hashCode ^ update.hashCode;
+
+  @override
+  operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! DataFieldWriteRef) return false;
+    return path == other.path &&
+        create == other.create &&
+        update == other.update;
+  }
+
+  @override
+  String toString() {
+    return '$DataFieldWriteRef(path: $path, create: $create, update: $update)';
+  }
+}
+
 class DataFieldValue {
   final Object? value;
   final DataFieldValues type;
@@ -45,6 +84,20 @@ class DataFieldValue {
 
   factory DataFieldValue.increment(num value) {
     return DataFieldValue(value, DataFieldValues.increment);
+  }
+
+  factory DataFieldValue.create(String path, Map<String, dynamic> create) {
+    return DataFieldValue(
+      DataFieldWriteRef.create(path, create),
+      DataFieldValues.none,
+    );
+  }
+
+  factory DataFieldValue.update(String path, Map<String, dynamic> update) {
+    return DataFieldValue(
+      DataFieldWriteRef.update(path, update),
+      DataFieldValues.none,
+    );
   }
 
   @override

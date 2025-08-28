@@ -1,4 +1,9 @@
+## 2.3.3
+
+* DataFieldWriteRef support by using DataFieldValue
+
 ## 2.3.2
+
 ## 2.3.1
 
 * Flutter entity lib upgrade
