@@ -1,3 +1,7 @@
+## 2.3.4
+
+* Document creation path bug fixed
+
 ## 2.3.3
 
 * DataFieldWriteRef support by using DataFieldValue

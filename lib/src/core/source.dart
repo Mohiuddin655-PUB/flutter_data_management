@@ -213,7 +213,7 @@ abstract class DataSource<T extends Entity> {
     if (id.isEmpty) return Response(status: Status.invalidId);
     if (data.isEmpty) return Response(status: Status.invalid);
     return execute(() {
-      final path = this.ref(params, DataModifiers.create);
+      final path = ref(params, DataModifiers.create, id);
       if (isEncryptor) {
         return encryptor.input(data).then((raw) {
           if (raw.isEmpty) {
@@ -295,7 +295,7 @@ abstract class DataSource<T extends Entity> {
         resolveRefs: resolveRefs ?? deleteRefs,
       ).then((old) {
         if (!old.isValid) return old;
-        final path = this.ref(params, DataModifiers.deleteById, id);
+        final path = ref(params, DataModifiers.deleteById, id);
         return operation.delete(path, deleteRefs: deleteRefs).then((value) {
           return Response(status: Status.ok, backups: [old.data!]);
         });
@@ -355,7 +355,7 @@ abstract class DataSource<T extends Entity> {
   }) async {
     return execute(() {
       List<T> result = [];
-      final path = this.ref(params, DataModifiers.get);
+      final path = ref(params, DataModifiers.get);
       return operation.get(path, resolveRefs: resolveRefs).then((event) async {
         if (event.docs.isEmpty && event.docChanges.isEmpty) {
           return Response(status: Status.notFound, snapshot: event.snapshot);
@@ -397,7 +397,7 @@ abstract class DataSource<T extends Entity> {
   }) async {
     if (id.isEmpty) return Response(status: Status.invalidId);
     return execute(() {
-      final path = this.ref(params, DataModifiers.getById, id);
+      final path = ref(params, DataModifiers.getById, id);
       return operation
           .getById(path, resolveRefs: resolveRefs)
           .then((event) async {
@@ -448,7 +448,7 @@ abstract class DataSource<T extends Entity> {
         });
       } else {
         List<T> result = [];
-        final path = this.ref(params, DataModifiers.getByIds);
+        final path = ref(params, DataModifiers.getByIds);
         return operation.getByQuery(path, resolveRefs: resolveRefs, queries: [
           DataQuery(DataFieldPath.documentId, whereIn: ids)
         ]).then((event) async {
@@ -488,7 +488,7 @@ abstract class DataSource<T extends Entity> {
   }) async {
     return execute(() {
       List<T> result = [];
-      final path = this.ref(params, DataModifiers.getByQuery);
+      final path = ref(params, DataModifiers.getByQuery);
       return operation
           .getByQuery(
         path,
@@ -538,7 +538,7 @@ abstract class DataSource<T extends Entity> {
   }) {
     return executeStream(() {
       List<T> result = [];
-      final path = this.ref(params, DataModifiers.listen);
+      final path = ref(params, DataModifiers.listen);
       return operation
           .listen(path, resolveRefs: resolveRefs)
           .asyncMap((event) async {
@@ -574,7 +574,7 @@ abstract class DataSource<T extends Entity> {
     Duration? interval,
   }) {
     return executeStream(() {
-      final path = this.ref(params, DataModifiers.listenCount);
+      final path = ref(params, DataModifiers.listenCount);
       return Stream.periodic(interval ?? Duration(seconds: 10)).asyncMap((_) {
         return operation.count(path).then((e) {
           return Response(data: e, status: Status.ok);
@@ -599,7 +599,7 @@ abstract class DataSource<T extends Entity> {
   }) {
     if (id.isEmpty) return Stream.value(Response(status: Status.invalidId));
     return executeStream(() {
-      final path = this.ref(params, DataModifiers.listenById, id);
+      final path = ref(params, DataModifiers.listenById, id);
       return operation
           .listenById(path, resolveRefs: resolveRefs)
           .asyncMap((event) async {
@@ -646,7 +646,7 @@ abstract class DataSource<T extends Entity> {
         });
       } else {
         List<T> result = [];
-        final path = this.ref(params, DataModifiers.listenByIds);
+        final path = ref(params, DataModifiers.listenByIds);
         return operation.listenByQuery(path,
             resolveRefs: resolveRefs,
             queries: [
@@ -699,7 +699,7 @@ abstract class DataSource<T extends Entity> {
   }) {
     return executeStream(() {
       List<T> result = [];
-      final path = this.ref(params, DataModifiers.listenByQuery);
+      final path = ref(params, DataModifiers.listenByQuery);
       return operation
           .listenByQuery(path, resolveRefs: resolveRefs)
           .asyncMap((event) async {
@@ -745,7 +745,7 @@ abstract class DataSource<T extends Entity> {
     if (checker.field.isEmpty) return Response(status: Status.invalid);
     return execute(() {
       List<T> result = [];
-      final path = this.ref(params, DataModifiers.search);
+      final path = ref(params, DataModifiers.search);
       return operation
           .search(path, checker, resolveRefs: resolveRefs)
           .then((event) async {
@@ -782,7 +782,7 @@ abstract class DataSource<T extends Entity> {
   }) async {
     if (id.isEmpty || data.isEmpty) return Response(status: Status.invalid);
     return execute(() {
-      final path = this.ref(params, DataModifiers.updateById, id);
+      final path = ref(params, DataModifiers.updateById, id);
       data = data.map((k, v) => MapEntry(k, delegate.updatingFieldValue(v)));
       if (!isEncryptor) {
         return operation
