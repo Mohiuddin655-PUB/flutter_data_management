@@ -132,7 +132,12 @@ class DataOperation {
       batch.update(ref, x);
     }
 
-    void ops(String ref, Object? creates, Object? updates) {
+    void deleteBatch(Object? value) {
+      if (value is! String || value.isEmpty) return;
+      batch.delete(value);
+    }
+
+    void ops(String ref, Object? creates, Object? updates, Object? deletes) {
       if (creates is Map) {
         createBatch(ref, creates);
       } else if (creates is List) {
@@ -147,6 +152,13 @@ class DataOperation {
           updateBatch(ref, u);
         }
       }
+      if (deletes is String) {
+        deleteBatch(deletes);
+      } else if (deletes is List) {
+        for (final d in deletes) {
+          deleteBatch(d);
+        }
+      }
     }
 
     data.forEach((k, v) {
@@ -156,15 +168,16 @@ class DataOperation {
             final ref = value["path"];
             final create = value["create"] ?? value['creates'];
             final update = value["update"] ?? value['updates'];
-            ops(ref, create, update);
+            final deletes = value["delete"] ?? value['deletes'];
+            ops(ref, create, update, deletes);
             return ref;
           } else if (value is DataFieldValue &&
               value.value is DataFieldWriteRef) {
             final dataRef = value.value as DataFieldWriteRef;
-            ops(dataRef.path, dataRef.create, dataRef.update);
+            ops(dataRef.path, dataRef.create, dataRef.update, dataRef.delete);
             return dataRef.path;
           } else if (value is DataFieldWriteRef && value.isNotEmpty) {
-            ops(value.path, value.create, value.update);
+            ops(value.path, value.create, value.update, value.delete);
             return value.path;
           }
           return value;

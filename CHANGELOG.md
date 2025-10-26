@@ -1,6 +1,7 @@
 ## 2.3.7
 
 * Batch data normalization support
+* Delete batch supported
 
 ## 2.3.6
 

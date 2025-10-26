@@ -25,31 +25,31 @@ class DataFieldWriteRef {
   final String path;
   final List<Map<String, dynamic>> create;
   final List<Map<String, dynamic>> update;
+  final List<String> delete;
 
   bool get isNotEmpty {
-    return path.isNotEmpty && (create.isNotEmpty || update.isNotEmpty);
+    return path.isNotEmpty &&
+        (create.isNotEmpty || update.isNotEmpty || delete.isNotEmpty);
   }
 
   const DataFieldWriteRef(
     this.path, {
     this.create = const [],
     this.update = const [],
+    this.delete = const [],
   });
-
-  const DataFieldWriteRef.create(this.path, this.create) : update = const [];
-
-  const DataFieldWriteRef.update(this.path, this.update) : create = const [];
 
   Map<String, dynamic> get metadata {
     return {
       "path": path,
       if (create.isNotEmpty) "create": create,
       if (update.isNotEmpty) "update": update,
+      if (delete.isNotEmpty) "delete": delete,
     };
   }
 
   @override
-  int get hashCode => path.hashCode ^ create.hashCode ^ update.hashCode;
+  int get hashCode => Object.hash(path, create, update, delete);
 
   @override
   operator ==(Object other) {
@@ -57,12 +57,13 @@ class DataFieldWriteRef {
     if (other is! DataFieldWriteRef) return false;
     return path == other.path &&
         create == other.create &&
+        delete == other.delete &&
         update == other.update;
   }
 
   @override
   String toString() {
-    return '$DataFieldWriteRef(path: $path, create: $create, update: $update)';
+    return '$DataFieldWriteRef(path: $path, create: $create, delete: $delete, update: $update)';
   }
 }
 
@@ -92,27 +93,19 @@ class DataFieldValue {
     return DataFieldValue(value, DataFieldValues.increment);
   }
 
-  factory DataFieldValue.create(
-    String path,
-    List<Map<String, dynamic>> create,
-  ) {
-    return DataFieldValue.write(path, create: create);
-  }
-
-  factory DataFieldValue.update(
-    String path,
-    List<Map<String, dynamic>> update,
-  ) {
-    return DataFieldValue.write(path, update: update);
-  }
-
   factory DataFieldValue.write(
     String path, {
     List<Map<String, dynamic>>? create,
     List<Map<String, dynamic>>? update,
+    List<String>? delete,
   }) {
     return DataFieldValue(
-      DataFieldWriteRef(path, create: create ?? [], update: update ?? []),
+      DataFieldWriteRef(
+        path,
+        create: create ?? [],
+        update: update ?? [],
+        delete: delete ?? [],
+      ),
       DataFieldValues.none,
     );
   }
