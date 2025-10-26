@@ -23,16 +23,22 @@ enum DataFieldValues {
 
 class DataFieldWriteRef {
   final String path;
-  final Map<String, dynamic> create;
-  final Map<String, dynamic> update;
+  final List<Map<String, dynamic>> create;
+  final List<Map<String, dynamic>> update;
 
   bool get isNotEmpty {
     return path.isNotEmpty && (create.isNotEmpty || update.isNotEmpty);
   }
 
-  const DataFieldWriteRef.create(this.path, this.create) : update = const {};
+  const DataFieldWriteRef(
+    this.path, {
+    this.create = const [],
+    this.update = const [],
+  });
 
-  const DataFieldWriteRef.update(this.path, this.update) : create = const {};
+  const DataFieldWriteRef.create(this.path, this.create) : update = const [];
+
+  const DataFieldWriteRef.update(this.path, this.update) : create = const [];
 
   Map<String, dynamic> get metadata {
     return {
@@ -86,16 +92,27 @@ class DataFieldValue {
     return DataFieldValue(value, DataFieldValues.increment);
   }
 
-  factory DataFieldValue.create(String path, Map<String, dynamic> create) {
-    return DataFieldValue(
-      DataFieldWriteRef.create(path, create),
-      DataFieldValues.none,
-    );
+  factory DataFieldValue.create(
+    String path,
+    List<Map<String, dynamic>> create,
+  ) {
+    return DataFieldValue.write(path, create: create);
   }
 
-  factory DataFieldValue.update(String path, Map<String, dynamic> update) {
+  factory DataFieldValue.update(
+    String path,
+    List<Map<String, dynamic>> update,
+  ) {
+    return DataFieldValue.write(path, update: update);
+  }
+
+  factory DataFieldValue.write(
+    String path, {
+    List<Map<String, dynamic>>? create,
+    List<Map<String, dynamic>>? update,
+  }) {
     return DataFieldValue(
-      DataFieldWriteRef.update(path, update),
+      DataFieldWriteRef(path, create: create ?? [], update: update ?? []),
       DataFieldValues.none,
     );
   }

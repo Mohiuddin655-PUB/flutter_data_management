@@ -1,3 +1,7 @@
+## 2.3.6
+
+* Multi @refs improved for at a time multi-ops
+
 ## 2.3.5
 
 * Multi @refs supports

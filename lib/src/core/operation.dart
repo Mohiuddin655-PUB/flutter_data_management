@@ -120,11 +120,30 @@ class DataOperation {
   ]) {
     final result = <String, dynamic>{};
 
-    void ops(String ref, Map<String, dynamic> c, Map<String, dynamic> u) {
-      if (c.isNotEmpty) {
-        batch.set(ref, Map<String, dynamic>.from(c), merge);
-      } else if (u.isNotEmpty) {
-        batch.update(ref, Map<String, dynamic>.from(u));
+    void createBatch(String ref, Object? value) {
+      if (value is! Map<String, dynamic> || value.isEmpty) return;
+      batch.set(ref, value, merge);
+    }
+
+    void updateBatch(String ref, Object? value) {
+      if (value is! Map<String, dynamic> || value.isEmpty) return;
+      batch.update(ref, value);
+    }
+
+    void ops(String ref, Object? creates, Object? updates) {
+      if (creates is Map) {
+        createBatch(ref, creates);
+      } else if (creates is List) {
+        for (final c in creates) {
+          createBatch(ref, c);
+        }
+      }
+      if (updates is Map) {
+        updateBatch(ref, updates);
+      } else if (updates is List) {
+        for (final u in updates) {
+          updateBatch(ref, u);
+        }
       }
     }
 
@@ -133,8 +152,8 @@ class DataOperation {
         dynamic handleSingle(dynamic value) {
           if (value is Map && value["path"] != null) {
             final ref = value["path"];
-            final create = value["create"] ?? const {};
-            final update = value["update"] ?? const {};
+            final create = value["create"] ?? value['creates'];
+            final update = value["update"] ?? value['updates'];
             ops(ref, create, update);
             return ref;
           } else if (value is DataFieldValue &&
