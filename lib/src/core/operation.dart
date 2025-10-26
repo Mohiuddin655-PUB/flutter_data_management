@@ -115,93 +115,76 @@ class DataOperation {
 
   Map<String, dynamic> _setOrUpdate(
     DataWriteBatch batch,
-    Map<String, dynamic> data, [
+    Map data, [
     bool merge = true,
   ]) {
-    final result = <String, dynamic>{};
-
-    void createBatch(String ref, Object? value) {
-      if (value is! Map || value.isEmpty) return;
+    void createBatch(String ref, Map value) {
       final x = value.map((k, v) => MapEntry(k.toString(), v));
       batch.set(ref, x, merge);
     }
 
-    void updateBatch(String ref, Object? value) {
-      if (value is! Map || value.isEmpty) return;
+    void updateBatch(String ref, Map value) {
       final x = value.map((k, v) => MapEntry(k.toString(), v));
       batch.update(ref, x);
     }
 
-    void deleteBatch(Object? value) {
-      if (value is! String || value.isEmpty) return;
-      batch.delete(value);
-    }
-
-    void ops(String ref, Object? creates, Object? updates, Object? deletes) {
-      if (creates is Map) {
-        createBatch(ref, creates);
-      } else if (creates is List) {
-        for (final c in creates) {
-          createBatch(ref, c);
-        }
+    void ops(String ref, Object? c, Object? u) {
+      if (c is Map && c.isNotEmpty) {
+        createBatch(ref, c);
       }
-      if (updates is Map) {
-        updateBatch(ref, updates);
-      } else if (updates is List) {
-        for (final u in updates) {
-          updateBatch(ref, u);
-        }
-      }
-      if (deletes is String) {
-        deleteBatch(deletes);
-      } else if (deletes is List) {
-        for (final d in deletes) {
-          deleteBatch(d);
-        }
+      if (u is Map && u.isNotEmpty) {
+        updateBatch(ref, u);
       }
     }
 
-    data.forEach((k, v) {
-      if (k.startsWith('@')) {
-        dynamic handleSingle(dynamic value) {
-          if (value is Map && value["path"] != null) {
-            final ref = value["path"];
-            final create = value["create"] ?? value['creates'];
-            final update = value["update"] ?? value['updates'];
-            final deletes = value["delete"] ?? value['deletes'];
-            ops(ref, create, update, deletes);
-            return ref;
-          } else if (value is DataFieldValue &&
-              value.value is DataFieldWriteRef) {
-            final dataRef = value.value as DataFieldWriteRef;
-            ops(dataRef.path, dataRef.create, dataRef.update, dataRef.delete);
-            return dataRef.path;
-          } else if (value is DataFieldWriteRef && value.isNotEmpty) {
-            ops(value.path, value.create, value.update, value.delete);
-            return value.path;
-          }
-          return value;
-        }
-
-        if (v is List) {
-          result[k] = v.map(handleSingle).toList();
-        } else if (v is Map &&
-            v.values.every((e) =>
-                e is Map || e is DataFieldWriteRef || e is DataFieldValue)) {
-          final mapResult = <String, dynamic>{};
-          v.forEach((mk, mv) {
-            mapResult[mk] = handleSingle(mv);
-          });
-          result[k] = mapResult;
-        } else {
-          result[k] = handleSingle(v);
-        }
-      } else {
-        result[k] = v;
+    dynamic handle(dynamic value) {
+      // If it's a DataFieldWriteRef or wrapped value
+      if (value is DataFieldWriteRef && value.isNotEmpty) {
+        ops(value.path, value.create, value.update);
+        return value.path;
       }
-    });
+      if (value is DataFieldValue && value.value is DataFieldWriteRef) {
+        final ref = value.value as DataFieldWriteRef;
+        ops(ref.path, ref.create, ref.update);
+        return ref.path;
+      }
 
-    return result;
+      // If it's a JSON-like ref object
+      if (value is Map<String, dynamic>) {
+        final path = value["path"];
+        final create = value["create"];
+        final update = value["update"];
+
+        if (path != null && (create != null || update != null)) {
+          // If this object itself is a batch target
+          final c = create is Map
+              ? _setOrUpdate(batch, create, merge)
+              : (create ?? const {});
+          final u = update is Map
+              ? _setOrUpdate(batch, update, merge)
+              : (update ?? const {});
+          ops(path, c, u);
+          return path;
+        }
+
+        // Otherwise, go deeper recursively
+        final nested = {};
+        value.forEach((k, v) {
+          nested[k] = handle(v);
+        });
+        return nested;
+      }
+
+      // Handle lists of refs or objects
+      if (value is List) {
+        return value.map(handle).toList();
+      }
+
+      // Primitive or unhandled types remain as-is
+      return value;
+    }
+
+    return data.map((k, v) => MapEntry(k, k.startsWith("@") ? handle(v) : v));
   }
 
   Future<Map<String, dynamic>> _resolveRefs(Map<String, dynamic> data) async {

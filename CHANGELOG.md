@@ -1,3 +1,7 @@
+## 2.3.8
+
+* Batch create and update improved
+
 ## 2.3.7
 
 * Batch data normalization support
