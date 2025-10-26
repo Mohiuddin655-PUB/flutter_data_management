@@ -1,3 +1,7 @@
+## 2.3.7
+
+* Batch data normalization support
+
 ## 2.3.6
 
 * Multi @refs improved for at a time multi-ops

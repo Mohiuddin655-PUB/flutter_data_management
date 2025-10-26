@@ -121,13 +121,15 @@ class DataOperation {
     final result = <String, dynamic>{};
 
     void createBatch(String ref, Object? value) {
-      if (value is! Map<String, dynamic> || value.isEmpty) return;
-      batch.set(ref, value, merge);
+      if (value is! Map || value.isEmpty) return;
+      final x = value.map((k, v) => MapEntry(k.toString(), v));
+      batch.set(ref, x, merge);
     }
 
     void updateBatch(String ref, Object? value) {
-      if (value is! Map<String, dynamic> || value.isEmpty) return;
-      batch.update(ref, value);
+      if (value is! Map || value.isEmpty) return;
+      final x = value.map((k, v) => MapEntry(k.toString(), v));
+      batch.update(ref, x);
     }
 
     void ops(String ref, Object? creates, Object? updates) {
