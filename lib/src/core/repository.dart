@@ -561,6 +561,7 @@ class DataRepository<T extends Entity> {
     DataFieldParams? params,
     bool onlyUpdates = false,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
     bool? createRefs,
     bool merge = true,
     bool? lazyMode,
@@ -571,11 +572,12 @@ class DataRepository<T extends Entity> {
       final feedback = await DataCacheManager.i.cache(
         "GET",
         enabled: isSingletonMode(singletonMode),
-        keyProps: [params, onlyUpdates, resolveRefs],
+        keyProps: [params, onlyUpdates, resolveRefs, resolveDocChangesRefs],
         callback: () => _execute((source) {
           return source.get(
             params: params,
             resolveRefs: resolveRefs,
+            resolveDocChangesRefs: resolveDocChangesRefs,
             onlyUpdates: onlyUpdates,
           );
         }),
@@ -585,6 +587,7 @@ class DataRepository<T extends Entity> {
         return source.get(
           params: params,
           resolveRefs: resolveRefs,
+          resolveDocChangesRefs: resolveDocChangesRefs,
           onlyUpdates: onlyUpdates,
         );
       });
@@ -684,6 +687,7 @@ class DataRepository<T extends Entity> {
     Iterable<String> ids, {
     DataFieldParams? params,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
     bool? createRefs,
     bool merge = true,
     bool? lazyMode,
@@ -694,14 +698,24 @@ class DataRepository<T extends Entity> {
       final feedback = await DataCacheManager.i.cache(
         "GET_BY_IDS",
         enabled: isSingletonMode(singletonMode),
-        keyProps: [...ids, params, resolveRefs],
+        keyProps: [...ids, params, resolveRefs, resolveDocChangesRefs],
         callback: () => _execute((source) {
-          return source.getByIds(ids, params: params, resolveRefs: resolveRefs);
+          return source.getByIds(
+            ids,
+            params: params,
+            resolveRefs: resolveRefs,
+            resolveDocChangesRefs: resolveDocChangesRefs,
+          );
         }),
       );
       if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
       final backup = await _backup((source) {
-        return source.getByIds(ids, params: params, resolveRefs: resolveRefs);
+        return source.getByIds(
+          ids,
+          params: params,
+          resolveRefs: resolveRefs,
+          resolveDocChangesRefs: resolveDocChangesRefs,
+        );
       });
       if (backup.isValid) {
         if (isLazyMode(lazyMode)) {
@@ -746,6 +760,7 @@ class DataRepository<T extends Entity> {
     DataPagingOptions options = const DataPagingOptions(),
     bool onlyUpdates = false,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
     bool? createRefs,
     bool merge = true,
     bool? lazyMode,
@@ -764,6 +779,7 @@ class DataRepository<T extends Entity> {
           options,
           onlyUpdates,
           resolveRefs,
+          resolveDocChangesRefs,
         ],
         callback: () => _execute((source) {
           return source.getByQuery(
@@ -774,6 +790,7 @@ class DataRepository<T extends Entity> {
             options: options,
             onlyUpdates: onlyUpdates,
             resolveRefs: resolveRefs,
+            resolveDocChangesRefs: resolveDocChangesRefs,
           );
         }),
       );
@@ -787,6 +804,7 @@ class DataRepository<T extends Entity> {
           options: options,
           onlyUpdates: onlyUpdates,
           resolveRefs: resolveRefs,
+          resolveDocChangesRefs: resolveDocChangesRefs,
         );
       });
       if (backup.isValid) {
@@ -826,12 +844,14 @@ class DataRepository<T extends Entity> {
     DataFieldParams? params,
     bool onlyUpdates = false,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) {
     return _streamModifier(DataModifiers.listen, () {
       return _stream((source) {
         return source.listen(
           params: params,
           resolveRefs: resolveRefs,
+          resolveDocChangesRefs: resolveDocChangesRefs,
           onlyUpdates: onlyUpdates,
         );
       });
@@ -890,6 +910,7 @@ class DataRepository<T extends Entity> {
     Iterable<String> ids, {
     DataFieldParams? params,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) {
     return _streamModifier(DataModifiers.listenByIds, () {
       return _stream((source) {
@@ -897,6 +918,7 @@ class DataRepository<T extends Entity> {
           ids,
           params: params,
           resolveRefs: resolveRefs,
+          resolveDocChangesRefs: resolveDocChangesRefs,
         );
       });
     });
@@ -920,6 +942,7 @@ class DataRepository<T extends Entity> {
     DataPagingOptions options = const DataPagingOptions(),
     bool onlyUpdates = false,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) {
     return _streamModifier(DataModifiers.listenByQuery, () {
       return _stream((source) {
@@ -931,6 +954,7 @@ class DataRepository<T extends Entity> {
           options: options,
           onlyUpdates: onlyUpdates,
           resolveRefs: resolveRefs,
+          resolveDocChangesRefs: resolveDocChangesRefs,
         );
       });
     });
@@ -948,6 +972,7 @@ class DataRepository<T extends Entity> {
     DataFieldParams? params,
     bool onlyUpdates = false,
     bool? resolveRefs,
+    bool resolveDocChangesRefs = false,
     bool createRefs = false,
     bool merge = true,
     bool? lazyMode,
@@ -957,6 +982,7 @@ class DataRepository<T extends Entity> {
       return source.get(
         params: params,
         resolveRefs: resolveRefs ?? createRefs,
+        resolveDocChangesRefs: resolveDocChangesRefs,
         onlyUpdates: onlyUpdates,
       );
     });
@@ -996,6 +1022,7 @@ class DataRepository<T extends Entity> {
     Checker checker, {
     DataFieldParams? params,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
     bool? createRefs,
     bool merge = true,
     bool? lazyMode,
@@ -1003,11 +1030,21 @@ class DataRepository<T extends Entity> {
   }) {
     return _modifier(DataModifiers.search, () async {
       final feedback = await _execute((source) {
-        return source.search(checker, params: params, resolveRefs: resolveRefs);
+        return source.search(
+          checker,
+          params: params,
+          resolveRefs: resolveRefs,
+          resolveDocChangesRefs: resolveDocChangesRefs,
+        );
       });
       if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
       final backup = await _backup((source) {
-        return source.search(checker, params: params, resolveRefs: resolveRefs);
+        return source.search(
+          checker,
+          params: params,
+          resolveRefs: resolveRefs,
+          resolveDocChangesRefs: resolveDocChangesRefs,
+        );
       });
       if (backup.isValid) {
         if (isLazyMode(lazyMode)) {

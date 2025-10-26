@@ -162,7 +162,10 @@ abstract class DataSource<T extends Entity> {
     return execute(() {
       final path = ref(params, DataModifiers.clear);
       return operation
-          .get(path, resolveRefs: resolveRefs ?? deleteRefs)
+          .get(
+        path,
+        resolveRefs: resolveRefs ?? deleteRefs,
+      )
           .then((value) {
         if (!value.exists) return Response(status: Status.notFound);
         final ids = value.docs.map((e) => e.id).whereType<String>().toList();
@@ -352,11 +355,19 @@ abstract class DataSource<T extends Entity> {
     DataFieldParams? params,
     bool onlyUpdates = false,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) async {
     return execute(() {
       List<T> result = [];
       final path = ref(params, DataModifiers.get);
-      return operation.get(path, resolveRefs: resolveRefs).then((event) async {
+      return operation
+          .get(
+        path,
+        resolveRefs: resolveRefs && !onlyUpdates,
+        resolveDocChangesRefs:
+            resolveDocChangesRefs || (onlyUpdates && resolveRefs),
+      )
+          .then((event) async {
         if (event.docs.isEmpty && event.docChanges.isEmpty) {
           return Response(status: Status.notFound, snapshot: event.snapshot);
         }
@@ -432,6 +443,7 @@ abstract class DataSource<T extends Entity> {
     Iterable<String> ids, {
     DataFieldParams? params,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) async {
     if (ids.isEmpty) return Response(status: Status.invalid);
     return execute(() {
@@ -449,9 +461,12 @@ abstract class DataSource<T extends Entity> {
       } else {
         List<T> result = [];
         final path = ref(params, DataModifiers.getByIds);
-        return operation.getByQuery(path, resolveRefs: resolveRefs, queries: [
-          DataQuery(DataFieldPath.documentId, whereIn: ids)
-        ]).then((event) async {
+        return operation.getByQuery(path,
+            resolveRefs: resolveRefs,
+            resolveDocChangesRefs: resolveDocChangesRefs,
+            queries: [
+              DataQuery(DataFieldPath.documentId, whereIn: ids)
+            ]).then((event) async {
           if (event.docs.isEmpty) return Response(status: Status.notFound);
           result.clear();
           for (var i in event.docs) {
@@ -485,6 +500,7 @@ abstract class DataSource<T extends Entity> {
     DataPagingOptions options = const DataPagingOptions(),
     bool onlyUpdates = false,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) async {
     return execute(() {
       List<T> result = [];
@@ -496,7 +512,9 @@ abstract class DataSource<T extends Entity> {
         selections: selections,
         sorts: sorts,
         options: options,
-        resolveRefs: resolveRefs,
+        resolveRefs: resolveRefs && !onlyUpdates,
+        resolveDocChangesRefs:
+            resolveDocChangesRefs || (onlyUpdates && resolveRefs),
       )
           .then((event) async {
         if (event.docs.isEmpty && event.docChanges.isEmpty) {
@@ -535,12 +553,18 @@ abstract class DataSource<T extends Entity> {
     DataFieldParams? params,
     bool onlyUpdates = false,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) {
     return executeStream(() {
       List<T> result = [];
       final path = ref(params, DataModifiers.listen);
       return operation
-          .listen(path, resolveRefs: resolveRefs)
+          .listen(
+        path,
+        resolveRefs: resolveRefs && !onlyUpdates,
+        resolveDocChangesRefs:
+            resolveDocChangesRefs || (onlyUpdates && resolveRefs),
+      )
           .asyncMap((event) async {
         if (event.docs.isEmpty && event.docChanges.isEmpty) {
           return Response(status: Status.notFound, snapshot: event.snapshot);
@@ -625,6 +649,7 @@ abstract class DataSource<T extends Entity> {
     Iterable<String> ids, {
     DataFieldParams? params,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) {
     if (ids.isEmpty) return Stream.value(Response(status: Status.invalid));
     return executeStream(() {
@@ -649,6 +674,7 @@ abstract class DataSource<T extends Entity> {
         final path = ref(params, DataModifiers.listenByIds);
         return operation.listenByQuery(path,
             resolveRefs: resolveRefs,
+            resolveDocChangesRefs: resolveDocChangesRefs,
             queries: [
               DataQuery(DataFieldPath.documentId, whereIn: ids)
             ]).asyncMap((event) async {
@@ -696,12 +722,18 @@ abstract class DataSource<T extends Entity> {
     DataPagingOptions options = const DataPagingOptions(),
     bool onlyUpdates = false,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) {
     return executeStream(() {
       List<T> result = [];
       final path = ref(params, DataModifiers.listenByQuery);
       return operation
-          .listenByQuery(path, resolveRefs: resolveRefs)
+          .listenByQuery(
+        path,
+        resolveRefs: resolveRefs && !onlyUpdates,
+        resolveDocChangesRefs:
+            resolveDocChangesRefs || (onlyUpdates && resolveRefs),
+      )
           .asyncMap((event) async {
         if (event.docs.isEmpty && event.docChanges.isEmpty) {
           return Response(status: Status.notFound);
@@ -741,13 +773,19 @@ abstract class DataSource<T extends Entity> {
     Checker checker, {
     DataFieldParams? params,
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) async {
     if (checker.field.isEmpty) return Response(status: Status.invalid);
     return execute(() {
       List<T> result = [];
       final path = ref(params, DataModifiers.search);
       return operation
-          .search(path, checker, resolveRefs: resolveRefs)
+          .search(
+        path,
+        checker,
+        resolveRefs: resolveRefs,
+        resolveDocChangesRefs: resolveDocChangesRefs,
+      )
           .then((event) async {
         if (event.docs.isEmpty) return Response(status: Status.notFound);
         result.clear();

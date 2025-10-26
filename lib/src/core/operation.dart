@@ -113,6 +113,112 @@ class DataOperation {
 
   DataOperation(this.delegate);
 
+  Map<String, dynamic> _setOrUpdate(
+    DataWriteBatch batch,
+    Map<String, dynamic> data, [
+    bool merge = true,
+  ]) {
+    final result = <String, dynamic>{};
+
+    void ops(String ref, Map<String, dynamic> c, Map<String, dynamic> u) {
+      if (c.isNotEmpty) {
+        batch.set(ref, Map<String, dynamic>.from(c), merge);
+      } else if (u.isNotEmpty) {
+        batch.update(ref, Map<String, dynamic>.from(u));
+      }
+    }
+
+    data.forEach((k, v) {
+      if (k.startsWith('@')) {
+        dynamic handleSingle(dynamic value) {
+          if (value is Map && value["path"] != null) {
+            final ref = value["path"];
+            final create = value["create"] ?? const {};
+            final update = value["update"] ?? const {};
+            ops(ref, create, update);
+            return ref;
+          } else if (value is DataFieldValue &&
+              value.value is DataFieldWriteRef) {
+            final dataRef = value.value as DataFieldWriteRef;
+            ops(dataRef.path, dataRef.create, dataRef.update);
+            return dataRef.path;
+          } else if (value is DataFieldWriteRef && value.isNotEmpty) {
+            ops(value.path, value.create, value.update);
+            return value.path;
+          }
+          return value;
+        }
+
+        if (v is List) {
+          result[k] = v.map(handleSingle).toList();
+        } else if (v is Map &&
+            v.values.every((e) =>
+                e is Map || e is DataFieldWriteRef || e is DataFieldValue)) {
+          final mapResult = <String, dynamic>{};
+          v.forEach((mk, mv) {
+            mapResult[mk] = handleSingle(mv);
+          });
+          result[k] = mapResult;
+        } else {
+          result[k] = handleSingle(v);
+        }
+      } else {
+        result[k] = v;
+      }
+    });
+
+    return result;
+  }
+
+  Future<Map<String, dynamic>> _resolveRefs(Map<String, dynamic> data) async {
+    final result = Map<String, dynamic>.from(data);
+
+    for (final entry in data.entries) {
+      final key = entry.key;
+      final value = entry.value;
+
+      if (key.startsWith('@') && value != null) {
+        final fieldKey = key.substring(1);
+
+        if (value is String && value.isNotEmpty) {
+          final raw = await getById(value, resolveRefs: true);
+          final snap = raw.doc;
+          if (snap.isNotEmpty) {
+            result[fieldKey] = snap;
+          }
+        } else if (value is List) {
+          final resolvedList = <Map<String, dynamic>>[];
+          for (final v in value) {
+            if (v is String && v.isNotEmpty) {
+              final raw = await getById(v, resolveRefs: true);
+              final snap = raw.doc;
+              if (snap.isNotEmpty) {
+                resolvedList.add(snap);
+              }
+            }
+          }
+          result[fieldKey] = resolvedList;
+        } else if (value is Map) {
+          final resolvedMap = <String, Map<String, dynamic>>{};
+          for (final entry in value.entries) {
+            final k = entry.key;
+            final v = entry.value;
+            if (v is String && v.isNotEmpty) {
+              final raw = await getById(v, resolveRefs: true);
+              final snap = raw.doc;
+              if (snap.isNotEmpty) {
+                resolvedMap[k] = snap;
+              }
+            }
+          }
+          result[fieldKey] = resolvedMap;
+        }
+      }
+    }
+
+    return result;
+  }
+
   Future<int?> count(String path) => delegate.count(path);
 
   Future<void> create(
@@ -124,7 +230,7 @@ class DataOperation {
     if (!createRefs) return delegate.create(path, data, merge);
 
     final batch = delegate.batch();
-    final processedData = _process(batch, data, merge);
+    final processedData = _setOrUpdate(batch, data, merge);
     batch.set(path, processedData, merge);
     await batch.commit();
   }
@@ -134,14 +240,32 @@ class DataOperation {
 
     final data = await delegate.getById(path);
     if (!data.exists) return;
+
     final batch = delegate.batch();
+
     for (final entry in data.doc.entries) {
       final key = entry.key;
       final value = entry.value;
-      if (key.startsWith('@') && value is String && value.isNotEmpty) {
-        batch.delete(value);
+
+      if (key.startsWith('@') && value != null) {
+        if (value is String && value.isNotEmpty) {
+          batch.delete(value);
+        } else if (value is List) {
+          for (final v in value) {
+            if (v is String && v.isNotEmpty) {
+              batch.delete(v);
+            }
+          }
+        } else if (value is Map) {
+          for (final v in value.values) {
+            if (v is String && v.isNotEmpty) {
+              batch.delete(v);
+            }
+          }
+        }
       }
     }
+
     batch.delete(path);
     await batch.commit();
   }
@@ -149,6 +273,7 @@ class DataOperation {
   Future<DataGetsSnapshot> get(
     String path, {
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) async {
     final data = await delegate.get(path);
     if (!data.exists) return DataGetsSnapshot();
@@ -156,7 +281,9 @@ class DataOperation {
 
     return data.copyWith(
       docs: await Future.wait(data.docs.map(_resolveRefs)),
-      docChanges: await Future.wait(data.docChanges.map(_resolveRefs)),
+      docChanges: resolveDocChangesRefs
+          ? await Future.wait(data.docChanges.map(_resolveRefs))
+          : data.docChanges,
     );
   }
 
@@ -178,6 +305,7 @@ class DataOperation {
     Iterable<DataSorting> sorts = const [],
     DataPagingOptions options = const DataPagingOptions(),
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) async {
     final data = await delegate.getByQuery(
       path,
@@ -191,18 +319,26 @@ class DataOperation {
 
     return data.copyWith(
       docs: await Future.wait(data.docs.map(_resolveRefs)),
-      docChanges: await Future.wait(data.docChanges.map(_resolveRefs)),
+      docChanges: resolveDocChangesRefs
+          ? await Future.wait(data.docChanges.map(_resolveRefs))
+          : data.docChanges,
     );
   }
 
-  Stream<DataGetsSnapshot> listen(String path, {bool resolveRefs = false}) {
+  Stream<DataGetsSnapshot> listen(
+    String path, {
+    bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
+  }) {
     return delegate.listen(path).asyncMap((data) async {
       if (!data.exists) return DataGetsSnapshot();
       if (!resolveRefs) return data;
 
       return data.copyWith(
         docs: await Future.wait(data.docs.map(_resolveRefs)),
-        docChanges: await Future.wait(data.docChanges.map(_resolveRefs)),
+        docChanges: resolveDocChangesRefs
+            ? await Future.wait(data.docChanges.map(_resolveRefs))
+            : data.docChanges,
       );
     });
   }
@@ -223,6 +359,7 @@ class DataOperation {
     Iterable<DataSorting> sorts = const [],
     DataPagingOptions options = const DataPagingOptions(),
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) {
     return delegate.listenByQuery(path).asyncMap((data) async {
       if (!data.exists) return DataGetsSnapshot();
@@ -230,7 +367,9 @@ class DataOperation {
 
       return data.copyWith(
         docs: await Future.wait(data.docs.map(_resolveRefs)),
-        docChanges: await Future.wait(data.docChanges.map(_resolveRefs)),
+        docChanges: resolveDocChangesRefs
+            ? await Future.wait(data.docChanges.map(_resolveRefs))
+            : data.docChanges,
       );
     });
   }
@@ -239,6 +378,7 @@ class DataOperation {
     String path,
     Checker checker, {
     bool resolveRefs = false,
+    bool resolveDocChangesRefs = false,
   }) async {
     final data = await delegate.search(path, checker);
     if (!data.exists) return DataGetsSnapshot();
@@ -246,7 +386,9 @@ class DataOperation {
 
     return data.copyWith(
       docs: await Future.wait(data.docs.map(_resolveRefs)),
-      docChanges: await Future.wait(data.docChanges.map(_resolveRefs)),
+      docChanges: resolveDocChangesRefs
+          ? await Future.wait(data.docChanges.map(_resolveRefs))
+          : data.docChanges,
     );
   }
 
@@ -258,65 +400,8 @@ class DataOperation {
     if (!updateRefs) return delegate.update(path, data);
 
     final batch = delegate.batch();
-    final processedData = _process(batch, data, true);
+    final processedData = _setOrUpdate(batch, data, true);
     batch.update(path, processedData);
     await batch.commit();
-  }
-
-  Map<String, dynamic> _process(
-    DataWriteBatch batch,
-    Map<String, dynamic> data, [
-    bool merge = true,
-  ]) {
-    final result = <String, dynamic>{};
-    void ops(String ref, Map<String, dynamic> c, Map<String, dynamic> u) {
-      if (c.isNotEmpty) {
-        batch.set(ref, Map<String, dynamic>.from(c), merge);
-      } else if (u.isNotEmpty) {
-        batch.update(ref, Map<String, dynamic>.from(u));
-      }
-    }
-
-    data.forEach((k, v) {
-      if (k.startsWith('@')) {
-        if (v is Map && v["path"] != null) {
-          final ref = v["path"];
-          final create = v["create"];
-          final update = v["update"];
-          ops(ref, create, update);
-          result[k] = ref;
-        } else if (v is DataFieldValue && v.value is DataFieldWriteRef) {
-          final data = v.value as DataFieldWriteRef;
-          final ref = data.path;
-          ops(ref, data.create, data.update);
-          result[k] = ref;
-        } else if (v is DataFieldWriteRef && v.isNotEmpty) {
-          final ref = v.path;
-          ops(ref, v.create, v.update);
-          result[k] = ref;
-        } else {
-          result[k] = v;
-        }
-      } else {
-        result[k] = v;
-      }
-    });
-    return result;
-  }
-
-  Future<Map<String, dynamic>> _resolveRefs(Map<String, dynamic> data) async {
-    final result = Map<String, dynamic>.from(data);
-    for (final entry in data.entries) {
-      final key = entry.key;
-      final value = entry.value;
-      if (key.startsWith('@') && value is String && value.isNotEmpty) {
-        final raw = await delegate.getById(value);
-        final snap = raw.doc;
-        if (snap.isNotEmpty) {
-          result[key.toString().substring(1)] = snap;
-        }
-      }
-    }
-    return result;
   }
 }
