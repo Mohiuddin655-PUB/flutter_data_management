@@ -199,18 +199,27 @@ class DataOperation {
     return data.map((k, v) => MapEntry(k, k.startsWith("@") ? handle(v) : v));
   }
 
-  Future<Map<String, dynamic>> _resolveRefs(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> _resolveRefs(
+    Map<String, dynamic> data,
+    List<String> ignores,
+  ) async {
     final result = Map<String, dynamic>.from(data);
 
     for (final entry in data.entries) {
       final key = entry.key;
       final value = entry.value;
 
-      if (key.startsWith('@') && value != null) {
+      if (key.startsWith('@') &&
+          (ignores.isEmpty || !ignores.contains(key)) &&
+          value != null) {
         final fieldKey = key.substring(1);
 
         if (value is String && value.isNotEmpty) {
-          final raw = await getById(value, resolveRefs: true);
+          final raw = await getById(
+            value,
+            resolveRefs: true,
+            ignorableResolverFields: ignores,
+          );
           final snap = raw.doc;
           if (snap.isNotEmpty) {
             result[fieldKey] = snap;
@@ -219,7 +228,11 @@ class DataOperation {
           final resolvedList = <Map<String, dynamic>>[];
           for (final v in value) {
             if (v is String && v.isNotEmpty) {
-              final raw = await getById(v, resolveRefs: true);
+              final raw = await getById(
+                v,
+                resolveRefs: true,
+                ignorableResolverFields: ignores,
+              );
               final snap = raw.doc;
               if (snap.isNotEmpty) {
                 resolvedList.add(snap);
@@ -233,7 +246,11 @@ class DataOperation {
             final k = entry.key;
             final v = entry.value;
             if (v is String && v.isNotEmpty) {
-              final raw = await getById(v, resolveRefs: true);
+              final raw = await getById(
+                v,
+                resolveRefs: true,
+                ignorableResolverFields: ignores,
+              );
               final snap = raw.doc;
               if (snap.isNotEmpty) {
                 resolvedMap[k] = snap;
@@ -303,15 +320,18 @@ class DataOperation {
     String path, {
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     final data = await delegate.get(path);
     if (!data.exists) return DataGetsSnapshot();
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      docs: await Future.wait(data.docs.map(_resolveRefs)),
+      docs: await Future.wait(
+          data.docs.map((e) => _resolveRefs(e, ignorableResolverFields))),
       docChanges: resolveDocChangesRefs
-          ? await Future.wait(data.docChanges.map(_resolveRefs))
+          ? await Future.wait(data.docChanges
+              .map((e) => _resolveRefs(e, ignorableResolverFields)))
           : data.docChanges,
     );
   }
@@ -319,12 +339,15 @@ class DataOperation {
   Future<DataGetSnapshot> getById(
     String path, {
     bool resolveRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     final data = await delegate.getById(path);
     if (!data.exists) return DataGetSnapshot();
     if (!resolveRefs) return data;
 
-    return data.copyWith(doc: await _resolveRefs(data.doc));
+    return data.copyWith(
+      doc: await _resolveRefs(data.doc, ignorableResolverFields),
+    );
   }
 
   Future<DataGetsSnapshot> getByQuery(
@@ -335,6 +358,7 @@ class DataOperation {
     DataPagingOptions options = const DataPagingOptions(),
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     final data = await delegate.getByQuery(
       path,
@@ -347,9 +371,11 @@ class DataOperation {
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      docs: await Future.wait(data.docs.map(_resolveRefs)),
+      docs: await Future.wait(
+          data.docs.map((e) => _resolveRefs(e, ignorableResolverFields))),
       docChanges: resolveDocChangesRefs
-          ? await Future.wait(data.docChanges.map(_resolveRefs))
+          ? await Future.wait(data.docChanges
+              .map((e) => _resolveRefs(e, ignorableResolverFields)))
           : data.docChanges,
     );
   }
@@ -358,26 +384,35 @@ class DataOperation {
     String path, {
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) {
     return delegate.listen(path).asyncMap((data) async {
       if (!data.exists) return DataGetsSnapshot();
       if (!resolveRefs) return data;
 
       return data.copyWith(
-        docs: await Future.wait(data.docs.map(_resolveRefs)),
+        docs: await Future.wait(
+            data.docs.map((e) => _resolveRefs(e, ignorableResolverFields))),
         docChanges: resolveDocChangesRefs
-            ? await Future.wait(data.docChanges.map(_resolveRefs))
+            ? await Future.wait(data.docChanges
+                .map((e) => _resolveRefs(e, ignorableResolverFields)))
             : data.docChanges,
       );
     });
   }
 
-  Stream<DataGetSnapshot> listenById(String path, {bool resolveRefs = false}) {
+  Stream<DataGetSnapshot> listenById(
+    String path, {
+    bool resolveRefs = false,
+    List<String> ignorableResolverFields = const [],
+  }) {
     return delegate.listenById(path).asyncMap((data) async {
       if (!data.exists) return DataGetSnapshot();
       if (!resolveRefs) return data;
 
-      return data.copyWith(doc: await _resolveRefs(data.doc));
+      return data.copyWith(
+        doc: await _resolveRefs(data.doc, ignorableResolverFields),
+      );
     });
   }
 
@@ -389,15 +424,18 @@ class DataOperation {
     DataPagingOptions options = const DataPagingOptions(),
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) {
     return delegate.listenByQuery(path).asyncMap((data) async {
       if (!data.exists) return DataGetsSnapshot();
       if (!resolveRefs) return data;
 
       return data.copyWith(
-        docs: await Future.wait(data.docs.map(_resolveRefs)),
+        docs: await Future.wait(
+            data.docs.map((e) => _resolveRefs(e, ignorableResolverFields))),
         docChanges: resolveDocChangesRefs
-            ? await Future.wait(data.docChanges.map(_resolveRefs))
+            ? await Future.wait(data.docChanges
+                .map((e) => _resolveRefs(e, ignorableResolverFields)))
             : data.docChanges,
       );
     });
@@ -408,15 +446,18 @@ class DataOperation {
     Checker checker, {
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     final data = await delegate.search(path, checker);
     if (!data.exists) return DataGetsSnapshot();
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      docs: await Future.wait(data.docs.map(_resolveRefs)),
+      docs: await Future.wait(
+          data.docs.map((e) => _resolveRefs(e, ignorableResolverFields))),
       docChanges: resolveDocChangesRefs
-          ? await Future.wait(data.docChanges.map(_resolveRefs))
+          ? await Future.wait(data.docChanges
+              .map((e) => _resolveRefs(e, ignorableResolverFields)))
           : data.docChanges,
     );
   }

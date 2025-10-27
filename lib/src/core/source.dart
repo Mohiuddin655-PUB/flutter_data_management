@@ -127,11 +127,16 @@ abstract class DataSource<T extends Entity> {
     String id, {
     DataFieldParams? params,
     bool resolveRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     return execute(() {
       final path = ref(params, DataModifiers.checkById, id);
       return operation
-          .getById(path, resolveRefs: resolveRefs)
+          .getById(
+        path,
+        resolveRefs: resolveRefs,
+        ignorableResolverFields: ignorableResolverFields,
+      )
           .then((data) async {
         if (!data.exists) {
           return Response(status: Status.notFound);
@@ -158,6 +163,7 @@ abstract class DataSource<T extends Entity> {
     DataFieldParams? params,
     bool? resolveRefs,
     bool deleteRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     return execute(() {
       final path = ref(params, DataModifiers.clear);
@@ -165,6 +171,7 @@ abstract class DataSource<T extends Entity> {
           .get(
         path,
         resolveRefs: resolveRefs ?? deleteRefs,
+        ignorableResolverFields: ignorableResolverFields,
       )
           .then((value) {
         if (!value.exists) return Response(status: Status.notFound);
@@ -175,6 +182,7 @@ abstract class DataSource<T extends Entity> {
             ids,
             params: params,
             deleteRefs: deleteRefs,
+            ignorableResolverFields: ignorableResolverFields,
           ).then((deleted) {
             return deleted.copyWith(
               backups: value.docs.map((e) => build(e)).toList(),
@@ -288,6 +296,7 @@ abstract class DataSource<T extends Entity> {
     String id, {
     DataFieldParams? params,
     bool? resolveRefs,
+    List<String> ignorableResolverFields = const [],
     bool deleteRefs = false,
   }) async {
     if (id.isEmpty) return Response(status: Status.invalidId);
@@ -296,6 +305,7 @@ abstract class DataSource<T extends Entity> {
         id,
         params: params,
         resolveRefs: resolveRefs ?? deleteRefs,
+        ignorableResolverFields: ignorableResolverFields,
       ).then((old) {
         if (!old.isValid) return old;
         final path = ref(params, DataModifiers.deleteById, id);
@@ -320,6 +330,7 @@ abstract class DataSource<T extends Entity> {
     Iterable<String> ids, {
     DataFieldParams? params,
     bool? resolveRefs,
+    List<String> ignorableResolverFields = const [],
     bool deleteRefs = false,
   }) async {
     if (ids.isEmpty) return Response(status: Status.invalid);
@@ -329,6 +340,7 @@ abstract class DataSource<T extends Entity> {
           e,
           params: params,
           resolveRefs: resolveRefs ?? deleteRefs,
+          ignorableResolverFields: ignorableResolverFields,
           deleteRefs: deleteRefs,
         );
       });
@@ -356,6 +368,7 @@ abstract class DataSource<T extends Entity> {
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     return execute(() {
       List<T> result = [];
@@ -366,6 +379,7 @@ abstract class DataSource<T extends Entity> {
         resolveRefs: resolveRefs && !onlyUpdates,
         resolveDocChangesRefs:
             resolveDocChangesRefs || (onlyUpdates && resolveRefs),
+        ignorableResolverFields: ignorableResolverFields,
       )
           .then((event) async {
         if (event.docs.isEmpty && event.docChanges.isEmpty) {
@@ -405,12 +419,17 @@ abstract class DataSource<T extends Entity> {
     String id, {
     DataFieldParams? params,
     bool resolveRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     if (id.isEmpty) return Response(status: Status.invalidId);
     return execute(() {
       final path = ref(params, DataModifiers.getById, id);
       return operation
-          .getById(path, resolveRefs: resolveRefs)
+          .getById(
+        path,
+        resolveRefs: resolveRefs,
+        ignorableResolverFields: ignorableResolverFields,
+      )
           .then((event) async {
         if (!event.exists) {
           return Response(
@@ -444,12 +463,18 @@ abstract class DataSource<T extends Entity> {
     DataFieldParams? params,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     if (ids.isEmpty) return Response(status: Status.invalid);
     return execute(() {
       if (limitations.whereIn > 0 && ids.length > limitations.whereIn) {
         final callbacks = ids.map((e) {
-          return getById(e, params: params, resolveRefs: resolveRefs);
+          return getById(
+            e,
+            params: params,
+            resolveRefs: resolveRefs,
+            ignorableResolverFields: ignorableResolverFields,
+          );
         });
         return Future.wait(callbacks).then((value) {
           final x = value.where((e) => e.isSuccessful);
@@ -464,6 +489,7 @@ abstract class DataSource<T extends Entity> {
         return operation.getByQuery(path,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
+            ignorableResolverFields: ignorableResolverFields,
             queries: [
               DataQuery(DataFieldPath.documentId, whereIn: ids)
             ]).then((event) async {
@@ -501,6 +527,7 @@ abstract class DataSource<T extends Entity> {
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     return execute(() {
       List<T> result = [];
@@ -515,6 +542,7 @@ abstract class DataSource<T extends Entity> {
         resolveRefs: resolveRefs && !onlyUpdates,
         resolveDocChangesRefs:
             resolveDocChangesRefs || (onlyUpdates && resolveRefs),
+        ignorableResolverFields: ignorableResolverFields,
       )
           .then((event) async {
         if (event.docs.isEmpty && event.docChanges.isEmpty) {
@@ -554,6 +582,7 @@ abstract class DataSource<T extends Entity> {
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) {
     return executeStream(() {
       List<T> result = [];
@@ -564,6 +593,7 @@ abstract class DataSource<T extends Entity> {
         resolveRefs: resolveRefs && !onlyUpdates,
         resolveDocChangesRefs:
             resolveDocChangesRefs || (onlyUpdates && resolveRefs),
+        ignorableResolverFields: ignorableResolverFields,
       )
           .asyncMap((event) async {
         if (event.docs.isEmpty && event.docChanges.isEmpty) {
@@ -620,12 +650,17 @@ abstract class DataSource<T extends Entity> {
     String id, {
     DataFieldParams? params,
     bool resolveRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) {
     if (id.isEmpty) return Stream.value(Response(status: Status.invalidId));
     return executeStream(() {
       final path = ref(params, DataModifiers.listenById, id);
       return operation
-          .listenById(path, resolveRefs: resolveRefs)
+          .listenById(
+        path,
+        resolveRefs: resolveRefs,
+        ignorableResolverFields: ignorableResolverFields,
+      )
           .asyncMap((event) async {
         if (!event.exists) return Response(status: Status.notFound);
         var data = event.doc;
@@ -650,6 +685,7 @@ abstract class DataSource<T extends Entity> {
     DataFieldParams? params,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) {
     if (ids.isEmpty) return Stream.value(Response(status: Status.invalid));
     return executeStream(() {
@@ -657,7 +693,12 @@ abstract class DataSource<T extends Entity> {
         Map<String, T> map = {};
         return StreamGroup.merge(
           ids.map((e) {
-            return listenById(e, params: params, resolveRefs: resolveRefs);
+            return listenById(
+              e,
+              params: params,
+              resolveRefs: resolveRefs,
+              ignorableResolverFields: ignorableResolverFields,
+            );
           }),
         ).map((event) {
           final data = event.data;
@@ -675,6 +716,7 @@ abstract class DataSource<T extends Entity> {
         return operation.listenByQuery(path,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
+            ignorableResolverFields: ignorableResolverFields,
             queries: [
               DataQuery(DataFieldPath.documentId, whereIn: ids)
             ]).asyncMap((event) async {
@@ -723,6 +765,7 @@ abstract class DataSource<T extends Entity> {
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) {
     return executeStream(() {
       List<T> result = [];
@@ -733,6 +776,7 @@ abstract class DataSource<T extends Entity> {
         resolveRefs: resolveRefs && !onlyUpdates,
         resolveDocChangesRefs:
             resolveDocChangesRefs || (onlyUpdates && resolveRefs),
+        ignorableResolverFields: ignorableResolverFields,
       )
           .asyncMap((event) async {
         if (event.docs.isEmpty && event.docChanges.isEmpty) {
@@ -774,6 +818,7 @@ abstract class DataSource<T extends Entity> {
     DataFieldParams? params,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
+    List<String> ignorableResolverFields = const [],
   }) async {
     if (checker.field.isEmpty) return Response(status: Status.invalid);
     return execute(() {
@@ -785,6 +830,7 @@ abstract class DataSource<T extends Entity> {
         checker,
         resolveRefs: resolveRefs,
         resolveDocChangesRefs: resolveDocChangesRefs,
+        ignorableResolverFields: ignorableResolverFields,
       )
           .then((event) async {
         if (event.docs.isEmpty) return Response(status: Status.notFound);
@@ -816,6 +862,7 @@ abstract class DataSource<T extends Entity> {
     Map<String, dynamic> data, {
     DataFieldParams? params,
     bool? resolveRefs,
+    List<String> ignorableResolverFields = const [],
     bool updateRefs = false,
   }) async {
     if (id.isEmpty || data.isEmpty) return Response(status: Status.invalid);
@@ -831,6 +878,7 @@ abstract class DataSource<T extends Entity> {
         id,
         params: params,
         resolveRefs: resolveRefs ?? updateRefs,
+        ignorableResolverFields: ignorableResolverFields,
       ).then((value) {
         final x = value.data?.filtered ?? {};
         x.addAll(data);
@@ -861,6 +909,7 @@ abstract class DataSource<T extends Entity> {
     Iterable<DataWriter> updates, {
     DataFieldParams? params,
     bool? resolveRefs,
+    List<String> ignorableResolverFields = const [],
     bool updateRefs = false,
   }) async {
     if (updates.isEmpty) return Response(status: Status.invalid);
@@ -871,6 +920,7 @@ abstract class DataSource<T extends Entity> {
           e.data,
           params: params,
           resolveRefs: resolveRefs ?? updateRefs,
+          ignorableResolverFields: ignorableResolverFields,
           updateRefs: updateRefs,
         );
       });

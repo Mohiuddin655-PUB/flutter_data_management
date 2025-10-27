@@ -1,3 +1,7 @@
+## 2.4.0
+
+* ignorableResolverFields support
+
 ## 2.3.9
 
 * Delete batch improved for update
