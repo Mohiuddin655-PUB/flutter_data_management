@@ -25,25 +25,46 @@ class DataFieldWriteRef {
   final String path;
   final Map<String, dynamic> create;
   final Map<String, dynamic> update;
+  final bool delete;
 
   bool get isNotEmpty {
-    return path.isNotEmpty && (create.isNotEmpty || update.isNotEmpty);
+    return path.isNotEmpty &&
+        (create.isNotEmpty || update.isNotEmpty || delete);
   }
 
-  const DataFieldWriteRef.create(this.path, this.create) : update = const {};
+  const DataFieldWriteRef.write(
+    this.path, {
+    Map<String, dynamic>? create,
+    Map<String, dynamic>? update,
+    bool? delete,
+  })  : create = create ?? const {},
+        update = update ?? const {},
+        delete = delete ?? false;
 
-  const DataFieldWriteRef.update(this.path, this.update) : create = const {};
+  const DataFieldWriteRef.create(this.path, this.create)
+      : update = const {},
+        delete = false;
+
+  const DataFieldWriteRef.update(this.path, this.update)
+      : create = const {},
+        delete = false;
+
+  const DataFieldWriteRef.delete(this.path)
+      : create = const {},
+        update = const {},
+        delete = true;
 
   Map<String, dynamic> get metadata {
     return {
       "path": path,
       if (create.isNotEmpty) "create": create,
       if (update.isNotEmpty) "update": update,
+      if (delete) "delete": delete,
     };
   }
 
   @override
-  int get hashCode => path.hashCode ^ create.hashCode ^ update.hashCode;
+  int get hashCode => Object.hash(path, create, update, delete);
 
   @override
   operator ==(Object other) {
@@ -51,12 +72,13 @@ class DataFieldWriteRef {
     if (other is! DataFieldWriteRef) return false;
     return path == other.path &&
         create == other.create &&
-        update == other.update;
+        update == other.update &&
+        delete == other.delete;
   }
 
   @override
   String toString() {
-    return '$DataFieldWriteRef(path: $path, create: $create, update: $update)';
+    return '$DataFieldWriteRef(path: $path, create: $create, update: $update, delete: $delete)';
   }
 }
 
@@ -84,6 +106,23 @@ class DataFieldValue {
 
   factory DataFieldValue.increment(num value) {
     return DataFieldValue(value, DataFieldValues.increment);
+  }
+
+  factory DataFieldValue.write(
+    String path, {
+    Map<String, dynamic>? create,
+    Map<String, dynamic>? update,
+    bool? delete,
+  }) {
+    return DataFieldValue(
+      DataFieldWriteRef.write(
+        path,
+        create: create,
+        update: update,
+        delete: delete,
+      ),
+      DataFieldValues.none,
+    );
   }
 
   factory DataFieldValue.create(String path, Map<String, dynamic> create) {

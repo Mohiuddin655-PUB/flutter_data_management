@@ -128,24 +128,31 @@ class DataOperation {
       batch.update(ref, x);
     }
 
-    void ops(String ref, Object? c, Object? u) {
+    void deleteBatch(String ref) {
+      batch.delete(ref);
+    }
+
+    void ops(String ref, Object? c, Object? u, Object? d) {
       if (c is Map && c.isNotEmpty) {
         createBatch(ref, c);
       }
       if (u is Map && u.isNotEmpty) {
         updateBatch(ref, u);
       }
+      if (d == true) {
+        deleteBatch(ref);
+      }
     }
 
     dynamic handle(dynamic value) {
       // If it's a DataFieldWriteRef or wrapped value
       if (value is DataFieldWriteRef && value.isNotEmpty) {
-        ops(value.path, value.create, value.update);
+        ops(value.path, value.create, value.update, value.delete);
         return value.path;
       }
       if (value is DataFieldValue && value.value is DataFieldWriteRef) {
         final ref = value.value as DataFieldWriteRef;
-        ops(ref.path, ref.create, ref.update);
+        ops(ref.path, ref.create, ref.update, ref.delete);
         return ref.path;
       }
 
@@ -154,8 +161,10 @@ class DataOperation {
         final path = value["path"];
         final create = value["create"];
         final update = value["update"];
+        final delete = value["delete"];
 
-        if (path != null && (create != null || update != null)) {
+        if (path != null &&
+            (create != null || update != null || delete != null)) {
           // If this object itself is a batch target
           final c = create is Map
               ? _setOrUpdate(batch, create, merge)
@@ -163,7 +172,10 @@ class DataOperation {
           final u = update is Map
               ? _setOrUpdate(batch, update, merge)
               : (update ?? const {});
-          ops(path, c, u);
+          final d = delete is Map
+              ? _setOrUpdate(batch, delete, merge)
+              : (delete ?? false);
+          ops(path, c, u, d);
           return path;
         }
 

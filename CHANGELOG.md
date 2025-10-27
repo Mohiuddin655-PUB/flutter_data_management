@@ -1,3 +1,7 @@
+## 2.3.9
+
+* Delete batch improved for update
+
 ## 2.3.8
 
 * Batch create and update improved
