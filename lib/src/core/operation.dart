@@ -145,17 +145,6 @@ class DataOperation {
     }
 
     dynamic handle(dynamic value) {
-      // If it's a DataFieldWriteRef or wrapped value
-      if (value is DataFieldWriteRef && value.isNotEmpty) {
-        ops(value.path, value.create, value.update, value.delete);
-        return value.path;
-      }
-      if (value is DataFieldValue && value.value is DataFieldWriteRef) {
-        final ref = value.value as DataFieldWriteRef;
-        ops(ref.path, ref.create, ref.update, ref.delete);
-        return ref.path;
-      }
-
       // If it's a JSON-like ref object
       if (value is Map<String, dynamic>) {
         final path = value["path"];
@@ -320,38 +309,90 @@ class DataOperation {
     await batch.commit();
   }
 
-  Future<void> delete(String path, {bool deleteRefs = false}) async {
+  Future<void> delete(
+    String path, {
+    bool counter = false,
+    bool deleteRefs = false,
+    List<String> ignorableResolverFields = const [],
+  }) async {
     if (!deleteRefs) return delegate.delete(path);
-
-    final data = await delegate.getById(path);
-    if (!data.exists) return;
 
     final batch = delegate.batch();
 
-    for (final entry in data.doc.entries) {
-      final key = entry.key;
-      final value = entry.value;
+    Future<void> deepDelete(String docPath) async {
+      final snap = await getById(
+        docPath,
+        countable: false,
+        resolveRefs: true,
+        ignorableResolverFields: ignorableResolverFields,
+      );
 
-      if (key.startsWith('@') && value != null) {
+      if (!snap.exists) return;
+
+      Future<void> handleRef(dynamic value) async {
+        if (value == null) return;
+
         if (value is String && value.isNotEmpty) {
-          batch.delete(value);
+          await deepDelete(value);
         } else if (value is List) {
           for (final v in value) {
-            if (v is String && v.isNotEmpty) {
-              batch.delete(v);
-            }
+            await handleRef(v);
           }
         } else if (value is Map) {
           for (final v in value.values) {
-            if (v is String && v.isNotEmpty) {
-              batch.delete(v);
-            }
+            await handleRef(v);
           }
         }
       }
+
+      Future<void> handleCountable(dynamic value) async {
+        if (value == null) return;
+        if (value is String && value.isNotEmpty) {
+          final children = await get(
+            value,
+            countable: false,
+            resolveRefs: true,
+            ignorableResolverFields: ignorableResolverFields,
+          );
+          if (!children.exists) return;
+          for (final child in children.docs) {
+            for (final entry in child.entries) {
+              final key = entry.key;
+              final value = entry.value;
+              if (key.startsWith('@')) {
+                await handleRef(value);
+              } else if (counter && key.startsWith('#')) {
+                await handleCountable(value);
+              }
+            }
+          }
+        } else if (value is List) {
+          for (final v in value) {
+            await handleCountable(v);
+          }
+        } else if (value is Map) {
+          for (final v in value.values) {
+            await handleCountable(v);
+          }
+        }
+      }
+
+      for (final entry in snap.doc.entries) {
+        final key = entry.key;
+        final value = entry.value;
+
+        if (key.startsWith('@')) {
+          await handleRef(value);
+        } else if (counter && key.startsWith('#')) {
+          await handleCountable(value);
+        }
+      }
+
+      batch.delete(docPath);
     }
 
-    batch.delete(path);
+    await deepDelete(path);
+
     await batch.commit();
   }
 
