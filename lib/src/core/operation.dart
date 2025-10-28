@@ -113,82 +113,55 @@ class DataOperation {
 
   DataOperation(this.delegate);
 
-  Map<String, dynamic> _setOrUpdate(
-    DataWriteBatch batch,
-    Map data, [
-    bool merge = true,
-  ]) {
-    void createBatch(String ref, Map value) {
-      final x = value.map((k, v) => MapEntry(k.toString(), v));
-      batch.set(ref, x, merge);
-    }
-
-    void updateBatch(String ref, Map value) {
-      final x = value.map((k, v) => MapEntry(k.toString(), v));
-      batch.update(ref, x);
-    }
-
-    void deleteBatch(String ref) {
-      batch.delete(ref);
-    }
-
-    void ops(String ref, Object? c, Object? u, Object? d) {
-      if (c is Map && c.isNotEmpty) {
-        createBatch(ref, c);
-      }
-      if (u is Map && u.isNotEmpty) {
-        updateBatch(ref, u);
-      }
-      if (d == true) {
-        deleteBatch(ref);
-      }
-    }
-
+  Map<String, dynamic> _w(DataWriteBatch batch, Map data, bool merge) {
     dynamic handle(dynamic value) {
-      // If it's a JSON-like ref object
-      if (value is Map<String, dynamic>) {
+      if (value is Map) {
         final path = value["path"];
-        final create = value["create"];
-        final update = value["update"];
-        final delete = value["delete"];
 
-        if (path != null &&
-            (create != null || update != null || delete != null)) {
-          // If this object itself is a batch target
-          final c = create is Map
-              ? _setOrUpdate(batch, create, merge)
-              : (create ?? const {});
-          final u = update is Map
-              ? _setOrUpdate(batch, update, merge)
-              : (update ?? const {});
-          final d = delete is Map
-              ? _setOrUpdate(batch, delete, merge)
-              : (delete ?? false);
-          ops(path, c, u, d);
+        if (path is! String || path.isEmpty) {
+          return _w(batch, value, merge);
+        }
+
+        final create = value["create"];
+        if (create is Map && create.isNotEmpty) {
+          batch.set(path, _w(batch, create, merge), merge);
           return path;
         }
 
-        // Otherwise, go deeper recursively
-        final nested = {};
-        value.forEach((k, v) {
-          nested[k] = handle(v);
-        });
-        return nested;
+        final update = value["update"];
+        if (update is Map && update.isNotEmpty) {
+          batch.update(path, _w(batch, update, merge));
+          return path;
+        }
+
+        final delete = value["delete"];
+        if (delete is bool && delete) {
+          batch.delete(path);
+          return null;
+        }
+
+        return path;
       }
 
-      // Handle lists of refs or objects
-      if (value is List) {
-        return value.map(handle).toList();
+      if (value is List && value.isNotEmpty) {
+        return value.map(handle).where((e) => e != null).toList();
       }
 
-      // Primitive or unhandled types remain as-is
       return value;
     }
 
-    return data.map((k, v) => MapEntry(k, k.startsWith("@") ? handle(v) : v));
+    final entries = data.entries.map((e) {
+      final k = e.key;
+      if (k is! String || k.isEmpty) return null;
+      final v = k.startsWith("@") ? handle(e.value) : e.value;
+      if (v == null) return null;
+      return MapEntry(k, v);
+    }).whereType<MapEntry<String, dynamic>>();
+
+    return Map.fromEntries(entries);
   }
 
-  Future<Map<String, dynamic>> _resolveRefs(
+  Future<Map<String, dynamic>> _r(
     Map<String, dynamic> data,
     List<String> ignores,
     bool countable,
@@ -199,8 +172,7 @@ class DataOperation {
       final key = entry.key;
       final value = entry.value;
 
-      if (key.startsWith('@') &&
-          (ignores.isEmpty || !ignores.contains(key)) &&
+      if (key.startsWith('@') && (ignores.isEmpty || !ignores.contains(key)) &&
           value != null) {
         final fieldKey = key.substring(1);
 
@@ -303,10 +275,10 @@ class DataOperation {
   }) async {
     if (!createRefs) return delegate.create(path, data, merge);
 
-    final batch = delegate.batch();
-    final processedData = _setOrUpdate(batch, data, merge);
-    batch.set(path, processedData, merge);
-    await batch.commit();
+    final b = delegate.batch();
+    final w = _w(b, data, merge);
+    b.set(path, w, merge);
+    await b.commit();
   }
 
   Future<void> delete(
@@ -432,11 +404,11 @@ class DataOperation {
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      docs: await Future.wait(data.docs
-          .map((e) => _resolveRefs(e, ignorableResolverFields, countable))),
+      docs: await Future.wait(
+          data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
       docChanges: resolveDocChangesRefs
           ? await Future.wait(data.docChanges
-              .map((e) => _resolveRefs(e, ignorableResolverFields, countable)))
+              .map((e) => _r(e, ignorableResolverFields, countable)))
           : data.docChanges,
     );
   }
@@ -452,7 +424,7 @@ class DataOperation {
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      doc: await _resolveRefs(data.doc, ignorableResolverFields, countable),
+      doc: await _r(data.doc, ignorableResolverFields, countable),
     );
   }
 
@@ -478,11 +450,11 @@ class DataOperation {
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      docs: await Future.wait(data.docs
-          .map((e) => _resolveRefs(e, ignorableResolverFields, countable))),
+      docs: await Future.wait(
+          data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
       docChanges: resolveDocChangesRefs
           ? await Future.wait(data.docChanges
-              .map((e) => _resolveRefs(e, ignorableResolverFields, countable)))
+              .map((e) => _r(e, ignorableResolverFields, countable)))
           : data.docChanges,
     );
   }
@@ -499,11 +471,11 @@ class DataOperation {
       if (!resolveRefs) return data;
 
       return data.copyWith(
-        docs: await Future.wait(data.docs
-            .map((e) => _resolveRefs(e, ignorableResolverFields, countable))),
+        docs: await Future.wait(
+            data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
         docChanges: resolveDocChangesRefs
-            ? await Future.wait(data.docChanges.map(
-                (e) => _resolveRefs(e, ignorableResolverFields, countable)))
+            ? await Future.wait(data.docChanges
+                .map((e) => _r(e, ignorableResolverFields, countable)))
             : data.docChanges,
       );
     });
@@ -520,7 +492,7 @@ class DataOperation {
       if (!resolveRefs) return data;
 
       return data.copyWith(
-        doc: await _resolveRefs(data.doc, ignorableResolverFields, countable),
+        doc: await _r(data.doc, ignorableResolverFields, countable),
       );
     });
   }
@@ -541,11 +513,11 @@ class DataOperation {
       if (!resolveRefs) return data;
 
       return data.copyWith(
-        docs: await Future.wait(data.docs
-            .map((e) => _resolveRefs(e, ignorableResolverFields, countable))),
+        docs: await Future.wait(
+            data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
         docChanges: resolveDocChangesRefs
-            ? await Future.wait(data.docChanges.map(
-                (e) => _resolveRefs(e, ignorableResolverFields, countable)))
+            ? await Future.wait(data.docChanges
+                .map((e) => _r(e, ignorableResolverFields, countable)))
             : data.docChanges,
       );
     });
@@ -564,11 +536,11 @@ class DataOperation {
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      docs: await Future.wait(data.docs
-          .map((e) => _resolveRefs(e, ignorableResolverFields, countable))),
+      docs: await Future.wait(
+          data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
       docChanges: resolveDocChangesRefs
           ? await Future.wait(data.docChanges
-              .map((e) => _resolveRefs(e, ignorableResolverFields, countable)))
+              .map((e) => _r(e, ignorableResolverFields, countable)))
           : data.docChanges,
     );
   }
@@ -581,7 +553,7 @@ class DataOperation {
     if (!updateRefs) return delegate.update(path, data);
 
     final batch = delegate.batch();
-    final processedData = _setOrUpdate(batch, data, true);
+    final processedData = _w(batch, data, true);
     batch.update(path, processedData);
     await batch.commit();
   }

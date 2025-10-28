@@ -1,3 +1,7 @@
+## 2.4.3
+
+* Update batch improved fro delete field doc and ref
+
 ## 2.4.2
 
 * DeepDelete support
