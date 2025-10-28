@@ -181,6 +181,7 @@ class DataRepository<T extends Entity> {
     DataFieldParams? params,
     bool merge = true,
     bool? createRefs,
+    bool? countable,
     bool resolveRefs = false,
     List<String> ignorableResolverFields = const [],
     bool? lazyMode,
@@ -191,6 +192,7 @@ class DataRepository<T extends Entity> {
         return source.checkById(
           id,
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           ignorableResolverFields: ignorableResolverFields,
         );
@@ -200,6 +202,7 @@ class DataRepository<T extends Entity> {
         return source.checkById(
           id,
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           ignorableResolverFields: ignorableResolverFields,
         );
@@ -582,6 +585,7 @@ class DataRepository<T extends Entity> {
   /// ```
   Future<Response<T>> get({
     DataFieldParams? params,
+    bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
@@ -598,6 +602,7 @@ class DataRepository<T extends Entity> {
         enabled: isSingletonMode(singletonMode),
         keyProps: [
           params,
+          countable,
           onlyUpdates,
           resolveRefs,
           resolveDocChangesRefs,
@@ -606,6 +611,7 @@ class DataRepository<T extends Entity> {
         callback: () => _execute((source) {
           return source.get(
             params: params,
+            countable: countable,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
             ignorableResolverFields: ignorableResolverFields,
@@ -617,6 +623,7 @@ class DataRepository<T extends Entity> {
       final backup = await _backup((source) {
         return source.get(
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
           ignorableResolverFields: ignorableResolverFields,
@@ -660,6 +667,7 @@ class DataRepository<T extends Entity> {
   Future<Response<T>> getById(
     String id, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     List<String> ignorableResolverFields = const [],
     bool? createRefs,
@@ -672,11 +680,18 @@ class DataRepository<T extends Entity> {
       final feedback = await DataCacheManager.i.cache(
         "GET_BY_ID",
         enabled: isSingletonMode(singletonMode),
-        keyProps: [id, params, resolveRefs, ...ignorableResolverFields],
+        keyProps: [
+          id,
+          params,
+          countable,
+          resolveRefs,
+          ...ignorableResolverFields
+        ],
         callback: () => _execute((source) {
           return source.getById(
             id,
             params: params,
+            countable: countable,
             resolveRefs: resolveRefs,
             ignorableResolverFields: ignorableResolverFields,
           );
@@ -687,6 +702,7 @@ class DataRepository<T extends Entity> {
         return source.getById(
           id,
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           ignorableResolverFields: ignorableResolverFields,
         );
@@ -729,6 +745,7 @@ class DataRepository<T extends Entity> {
   Future<Response<T>> getByIds(
     Iterable<String> ids, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
     List<String> ignorableResolverFields = const [],
@@ -753,6 +770,7 @@ class DataRepository<T extends Entity> {
           return source.getByIds(
             ids,
             params: params,
+            countable: countable,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
             ignorableResolverFields: ignorableResolverFields,
@@ -764,6 +782,7 @@ class DataRepository<T extends Entity> {
         return source.getByIds(
           ids,
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
           ignorableResolverFields: ignorableResolverFields,
@@ -810,6 +829,7 @@ class DataRepository<T extends Entity> {
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
     DataPagingOptions options = const DataPagingOptions(),
+    bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
@@ -830,6 +850,7 @@ class DataRepository<T extends Entity> {
           ...selections,
           ...sorts,
           options,
+          countable,
           onlyUpdates,
           resolveRefs,
           resolveDocChangesRefs,
@@ -842,6 +863,7 @@ class DataRepository<T extends Entity> {
             selections: selections,
             sorts: sorts,
             options: options,
+            countable: countable,
             onlyUpdates: onlyUpdates,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
@@ -857,6 +879,7 @@ class DataRepository<T extends Entity> {
           selections: selections,
           sorts: sorts,
           options: options,
+          countable: countable,
           onlyUpdates: onlyUpdates,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
@@ -898,6 +921,7 @@ class DataRepository<T extends Entity> {
   /// ```
   Stream<Response<T>> listen({
     DataFieldParams? params,
+    bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
@@ -907,6 +931,7 @@ class DataRepository<T extends Entity> {
       return _stream((source) {
         return source.listen(
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
           onlyUpdates: onlyUpdates,
@@ -945,6 +970,7 @@ class DataRepository<T extends Entity> {
   Stream<Response<T>> listenById(
     String id, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     List<String> ignorableResolverFields = const [],
   }) {
@@ -953,6 +979,7 @@ class DataRepository<T extends Entity> {
         return source.listenById(
           id,
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           ignorableResolverFields: ignorableResolverFields,
         );
@@ -973,6 +1000,7 @@ class DataRepository<T extends Entity> {
   Stream<Response<T>> listenByIds(
     Iterable<String> ids, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
     List<String> ignorableResolverFields = const [],
@@ -982,6 +1010,7 @@ class DataRepository<T extends Entity> {
         return source.listenByIds(
           ids,
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
           ignorableResolverFields: ignorableResolverFields,
@@ -1006,6 +1035,7 @@ class DataRepository<T extends Entity> {
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
     DataPagingOptions options = const DataPagingOptions(),
+    bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
@@ -1019,6 +1049,7 @@ class DataRepository<T extends Entity> {
           selections: selections,
           sorts: sorts,
           options: options,
+          countable: countable,
           onlyUpdates: onlyUpdates,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
@@ -1039,6 +1070,7 @@ class DataRepository<T extends Entity> {
   Future<void> restore({
     DataFieldParams? params,
     bool onlyUpdates = false,
+    bool? countable,
     bool? resolveRefs,
     bool resolveDocChangesRefs = false,
     List<String> ignorableResolverFields = const [],
@@ -1050,6 +1082,7 @@ class DataRepository<T extends Entity> {
     final backup = await _backup((source) {
       return source.get(
         params: params,
+        countable: countable,
         resolveRefs: resolveRefs ?? createRefs,
         resolveDocChangesRefs: resolveDocChangesRefs,
         onlyUpdates: onlyUpdates,
@@ -1091,6 +1124,7 @@ class DataRepository<T extends Entity> {
   Future<Response<T>> search(
     Checker checker, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
     List<String> ignorableResolverFields = const [],
@@ -1104,6 +1138,7 @@ class DataRepository<T extends Entity> {
         return source.search(
           checker,
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
           ignorableResolverFields: ignorableResolverFields,
@@ -1114,6 +1149,7 @@ class DataRepository<T extends Entity> {
         return source.search(
           checker,
           params: params,
+          countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
           ignorableResolverFields: ignorableResolverFields,

@@ -126,6 +126,7 @@ abstract class DataSource<T extends Entity> {
   Future<Response<T>> checkById(
     String id, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     List<String> ignorableResolverFields = const [],
   }) async {
@@ -134,6 +135,7 @@ abstract class DataSource<T extends Entity> {
       return operation
           .getById(
         path,
+        countable: countable ?? false,
         resolveRefs: resolveRefs,
         ignorableResolverFields: ignorableResolverFields,
       )
@@ -170,6 +172,7 @@ abstract class DataSource<T extends Entity> {
       return operation
           .get(
         path,
+        countable: false,
         resolveRefs: resolveRefs ?? deleteRefs,
         ignorableResolverFields: ignorableResolverFields,
       )
@@ -303,6 +306,7 @@ abstract class DataSource<T extends Entity> {
     return execute(() {
       return getById(
         id,
+        countable: false,
         params: params,
         resolveRefs: resolveRefs ?? deleteRefs,
         ignorableResolverFields: ignorableResolverFields,
@@ -366,6 +370,7 @@ abstract class DataSource<T extends Entity> {
   Future<Response<T>> get({
     DataFieldParams? params,
     bool onlyUpdates = false,
+    bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
     List<String> ignorableResolverFields = const [],
@@ -376,6 +381,7 @@ abstract class DataSource<T extends Entity> {
       return operation
           .get(
         path,
+        countable: countable ?? true,
         resolveRefs: resolveRefs && !onlyUpdates,
         resolveDocChangesRefs:
             resolveDocChangesRefs || (onlyUpdates && resolveRefs),
@@ -418,6 +424,7 @@ abstract class DataSource<T extends Entity> {
   Future<Response<T>> getById(
     String id, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     List<String> ignorableResolverFields = const [],
   }) async {
@@ -427,6 +434,7 @@ abstract class DataSource<T extends Entity> {
       return operation
           .getById(
         path,
+        countable: countable ?? true,
         resolveRefs: resolveRefs,
         ignorableResolverFields: ignorableResolverFields,
       )
@@ -461,6 +469,7 @@ abstract class DataSource<T extends Entity> {
   Future<Response<T>> getByIds(
     Iterable<String> ids, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
     List<String> ignorableResolverFields = const [],
@@ -471,6 +480,7 @@ abstract class DataSource<T extends Entity> {
         final callbacks = ids.map((e) {
           return getById(
             e,
+            countable: countable,
             params: params,
             resolveRefs: resolveRefs,
             ignorableResolverFields: ignorableResolverFields,
@@ -487,6 +497,7 @@ abstract class DataSource<T extends Entity> {
         List<T> result = [];
         final path = ref(params, DataModifiers.getByIds);
         return operation.getByQuery(path,
+            countable: countable ?? true,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
             ignorableResolverFields: ignorableResolverFields,
@@ -524,6 +535,7 @@ abstract class DataSource<T extends Entity> {
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
     DataPagingOptions options = const DataPagingOptions(),
+    bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
@@ -535,6 +547,7 @@ abstract class DataSource<T extends Entity> {
       return operation
           .getByQuery(
         path,
+        countable: countable ?? true,
         queries: queries,
         selections: selections,
         sorts: sorts,
@@ -579,6 +592,7 @@ abstract class DataSource<T extends Entity> {
   /// ```
   Stream<Response<T>> listen({
     DataFieldParams? params,
+    bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
@@ -590,6 +604,7 @@ abstract class DataSource<T extends Entity> {
       return operation
           .listen(
         path,
+        countable: countable ?? false,
         resolveRefs: resolveRefs && !onlyUpdates,
         resolveDocChangesRefs:
             resolveDocChangesRefs || (onlyUpdates && resolveRefs),
@@ -649,6 +664,7 @@ abstract class DataSource<T extends Entity> {
   Stream<Response<T>> listenById(
     String id, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     List<String> ignorableResolverFields = const [],
   }) {
@@ -658,6 +674,7 @@ abstract class DataSource<T extends Entity> {
       return operation
           .listenById(
         path,
+        countable: countable ?? false,
         resolveRefs: resolveRefs,
         ignorableResolverFields: ignorableResolverFields,
       )
@@ -683,6 +700,7 @@ abstract class DataSource<T extends Entity> {
   Stream<Response<T>> listenByIds(
     Iterable<String> ids, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
     List<String> ignorableResolverFields = const [],
@@ -695,6 +713,7 @@ abstract class DataSource<T extends Entity> {
           ids.map((e) {
             return listenById(
               e,
+              countable: countable,
               params: params,
               resolveRefs: resolveRefs,
               ignorableResolverFields: ignorableResolverFields,
@@ -714,6 +733,7 @@ abstract class DataSource<T extends Entity> {
         List<T> result = [];
         final path = ref(params, DataModifiers.listenByIds);
         return operation.listenByQuery(path,
+            countable: countable ?? false,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
             ignorableResolverFields: ignorableResolverFields,
@@ -762,6 +782,7 @@ abstract class DataSource<T extends Entity> {
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
     DataPagingOptions options = const DataPagingOptions(),
+    bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
@@ -773,6 +794,7 @@ abstract class DataSource<T extends Entity> {
       return operation
           .listenByQuery(
         path,
+        countable: countable ?? false,
         resolveRefs: resolveRefs && !onlyUpdates,
         resolveDocChangesRefs:
             resolveDocChangesRefs || (onlyUpdates && resolveRefs),
@@ -816,6 +838,7 @@ abstract class DataSource<T extends Entity> {
   Future<Response<T>> search(
     Checker checker, {
     DataFieldParams? params,
+    bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
     List<String> ignorableResolverFields = const [],
@@ -827,6 +850,7 @@ abstract class DataSource<T extends Entity> {
       return operation
           .search(
         path,
+        countable: countable ?? false,
         checker,
         resolveRefs: resolveRefs,
         resolveDocChangesRefs: resolveDocChangesRefs,
@@ -877,6 +901,7 @@ abstract class DataSource<T extends Entity> {
       return getById(
         id,
         params: params,
+        countable: false,
         resolveRefs: resolveRefs ?? updateRefs,
         ignorableResolverFields: ignorableResolverFields,
       ).then((value) {
