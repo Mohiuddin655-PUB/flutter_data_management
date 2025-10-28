@@ -166,6 +166,7 @@ abstract class DataSource<T extends Entity> {
     bool? resolveRefs,
     bool deleteRefs = false,
     List<String> ignorableResolverFields = const [],
+    bool counter = false,
   }) async {
     return execute(() {
       final path = ref(params, DataModifiers.clear);
@@ -184,6 +185,7 @@ abstract class DataSource<T extends Entity> {
           return deleteByIds(
             ids,
             params: params,
+            counter: counter,
             deleteRefs: deleteRefs,
             ignorableResolverFields: ignorableResolverFields,
           ).then((deleted) {
@@ -298,12 +300,10 @@ abstract class DataSource<T extends Entity> {
   Future<Response<T>> deleteById(
     String id, {
     DataFieldParams? params,
-    // bool? resolveRefs,
-    // List<String> ignorableResolverFields = const [],
-    // bool deleteRefs = false,
-    required bool counter,
-    required bool deleteRefs,
-    required List<String> ignorableResolverFields,
+    bool? resolveRefs,
+    List<String> ignorableResolverFields = const [],
+    bool deleteRefs = false,
+    bool counter = false,
   }) async {
     if (id.isEmpty) return Response(status: Status.invalidId);
     return execute(() {
@@ -323,6 +323,7 @@ abstract class DataSource<T extends Entity> {
           counter: counter,
           ignorableResolverFields: ignorableResolverFields,
           batchLimit: limitations.batchLimit,
+          batchMaxLimit: limitations.maximumDeleteLimit,
         )
             .then((value) {
           return Response(status: Status.ok, backups: [old.data!]);
@@ -347,6 +348,7 @@ abstract class DataSource<T extends Entity> {
     bool? resolveRefs,
     List<String> ignorableResolverFields = const [],
     bool deleteRefs = false,
+    bool counter = false,
   }) async {
     if (ids.isEmpty) return Response(status: Status.invalid);
     return execute(() {
@@ -354,6 +356,7 @@ abstract class DataSource<T extends Entity> {
         return deleteById(
           e,
           params: params,
+          counter: counter,
           resolveRefs: resolveRefs ?? deleteRefs,
           ignorableResolverFields: ignorableResolverFields,
           deleteRefs: deleteRefs,

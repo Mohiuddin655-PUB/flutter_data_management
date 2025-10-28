@@ -311,17 +311,19 @@ class DataOperation {
 
   Future<void> delete(
     String path, {
-    required bool counter,
-    required bool deleteRefs,
-    required List<String> ignorableResolverFields,
-    required int batchLimit,
-    required int? batchMaxLimit,
+    bool counter = false,
+    bool deleteRefs = false,
+    List<String> ignorableResolverFields = const [],
+    int batchLimit = 500,
+    int? batchMaxLimit,
   }) async {
     if (!deleteRefs) return delegate.delete(path);
 
     final List<String> toDelete = [];
 
     Future<void> deepCollect(String docPath) async {
+      if (batchMaxLimit != null && batchMaxLimit <= toDelete.length) return;
+
       final snap = await getById(
         docPath,
         countable: false,
@@ -348,9 +350,10 @@ class DataOperation {
       }
 
       Future<void> handleCountable(dynamic value) async {
+        if (batchMaxLimit != null && batchMaxLimit <= toDelete.length) return;
         if (value == null) return;
         if (value is String && value.isNotEmpty) {
-          final children = await get(
+          final children = await getByQuery(
             value,
             countable: false,
             resolveRefs: true,
@@ -387,7 +390,6 @@ class DataOperation {
       for (final entry in snap.doc.entries) {
         final key = entry.key;
         final value = entry.value;
-
         if (key.startsWith('@')) {
           await handleRef(value);
         } else if (counter && key.startsWith('#')) {
@@ -400,12 +402,17 @@ class DataOperation {
 
     await deepCollect(path);
 
-    for (int i = 0; i < toDelete.length; i += batchLimit) {
-      final batch = delegate.batch();
-      final end =
-          (i + batchLimit > toDelete.length) ? toDelete.length : i + batchLimit;
+    final cappedList = batchMaxLimit != null
+        ? toDelete.take(batchMaxLimit).toList()
+        : toDelete;
 
-      for (final docPath in toDelete.sublist(i, end)) {
+    for (int i = 0; i < cappedList.length; i += batchLimit) {
+      final batch = delegate.batch();
+      final end = (i + batchLimit > cappedList.length)
+          ? cappedList.length
+          : i + batchLimit;
+
+      for (final docPath in cappedList.sublist(i, end)) {
         batch.delete(docPath);
       }
 

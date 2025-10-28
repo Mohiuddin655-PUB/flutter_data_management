@@ -1,3 +1,7 @@
+## 2.4.2
+
+* DeepDelete support
+
 ## 2.4.1
 
 * Countable filed support [eg. likeCount, commentCount etc] load by collection count

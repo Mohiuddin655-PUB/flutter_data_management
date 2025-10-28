@@ -245,6 +245,7 @@ class DataRepository<T extends Entity> {
     bool? resolveRefs,
     List<String> ignorableResolverFields = const [],
     bool deleteRefs = false,
+    bool counter = false,
     bool? lazyMode,
     bool? backupMode,
   }) {
@@ -254,6 +255,7 @@ class DataRepository<T extends Entity> {
           _backup((source) {
             return source.clear(
               params: params,
+              counter: counter,
               resolveRefs: resolveRefs,
               ignorableResolverFields: ignorableResolverFields,
               deleteRefs: deleteRefs,
@@ -263,6 +265,7 @@ class DataRepository<T extends Entity> {
           await _backup((source) {
             return source.clear(
               params: params,
+              counter: counter,
               resolveRefs: resolveRefs,
               ignorableResolverFields: ignorableResolverFields,
               deleteRefs: deleteRefs,
@@ -273,6 +276,7 @@ class DataRepository<T extends Entity> {
       return _execute((source) {
         return source.clear(
           params: params,
+          counter: counter,
           resolveRefs: resolveRefs,
           ignorableResolverFields: ignorableResolverFields,
           deleteRefs: deleteRefs,
@@ -480,6 +484,7 @@ class DataRepository<T extends Entity> {
     DataFieldParams? params,
     bool? resolveRefs,
     List<String> ignorableResolverFields = const [],
+    bool counter = false,
     bool deleteRefs = false,
     bool? lazyMode,
     bool? backupMode,
@@ -491,6 +496,7 @@ class DataRepository<T extends Entity> {
             return source.deleteById(
               id,
               params: params,
+              counter: counter,
               resolveRefs: resolveRefs,
               ignorableResolverFields: ignorableResolverFields,
               deleteRefs: deleteRefs,
@@ -501,6 +507,7 @@ class DataRepository<T extends Entity> {
             return source.deleteById(
               id,
               params: params,
+              counter: counter,
               resolveRefs: resolveRefs,
               ignorableResolverFields: ignorableResolverFields,
               deleteRefs: deleteRefs,
@@ -512,6 +519,7 @@ class DataRepository<T extends Entity> {
         return source.deleteById(
           id,
           params: params,
+          counter: counter,
           resolveRefs: resolveRefs,
           ignorableResolverFields: ignorableResolverFields,
           deleteRefs: deleteRefs,
@@ -535,6 +543,7 @@ class DataRepository<T extends Entity> {
     DataFieldParams? params,
     bool? resolveRefs,
     List<String> ignorableResolverFields = const [],
+    bool counter = false,
     bool deleteRefs = false,
     bool? lazyMode,
     bool? backupMode,
@@ -546,6 +555,7 @@ class DataRepository<T extends Entity> {
             return source.deleteByIds(
               ids,
               params: params,
+              counter: counter,
               resolveRefs: resolveRefs,
               ignorableResolverFields: ignorableResolverFields,
               deleteRefs: deleteRefs,
@@ -556,6 +566,7 @@ class DataRepository<T extends Entity> {
             return source.deleteByIds(
               ids,
               params: params,
+              counter: counter,
               resolveRefs: resolveRefs,
               ignorableResolverFields: ignorableResolverFields,
               deleteRefs: deleteRefs,
@@ -567,6 +578,7 @@ class DataRepository<T extends Entity> {
         return source.deleteByIds(
           ids,
           params: params,
+          counter: counter,
           resolveRefs: resolveRefs,
           ignorableResolverFields: ignorableResolverFields,
           deleteRefs: deleteRefs,
