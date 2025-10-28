@@ -311,15 +311,17 @@ class DataOperation {
 
   Future<void> delete(
     String path, {
-    bool counter = false,
-    bool deleteRefs = false,
-    List<String> ignorableResolverFields = const [],
+    required bool counter,
+    required bool deleteRefs,
+    required List<String> ignorableResolverFields,
+    required int batchLimit,
+    required int? batchMaxLimit,
   }) async {
     if (!deleteRefs) return delegate.delete(path);
 
-    final batch = delegate.batch();
+    final List<String> toDelete = [];
 
-    Future<void> deepDelete(String docPath) async {
+    Future<void> deepCollect(String docPath) async {
       final snap = await getById(
         docPath,
         countable: false,
@@ -333,7 +335,7 @@ class DataOperation {
         if (value == null) return;
 
         if (value is String && value.isNotEmpty) {
-          await deepDelete(value);
+          await deepCollect(value);
         } else if (value is List) {
           for (final v in value) {
             await handleRef(v);
@@ -354,7 +356,7 @@ class DataOperation {
             resolveRefs: true,
             ignorableResolverFields: ignorableResolverFields,
           );
-          if (!children.exists) return;
+          if (!children.exists || children.docs.isEmpty) return;
           for (final child in children.docs) {
             for (final entry in child.entries) {
               final key = entry.key;
@@ -364,6 +366,11 @@ class DataOperation {
               } else if (counter && key.startsWith('#')) {
                 await handleCountable(value);
               }
+            }
+            final id = child['id'];
+            if (id is String && id.isNotEmpty) {
+              final childPath = "$value/$id";
+              toDelete.add(childPath);
             }
           }
         } else if (value is List) {
@@ -388,12 +395,22 @@ class DataOperation {
         }
       }
 
-      batch.delete(docPath);
+      toDelete.add(docPath);
     }
 
-    await deepDelete(path);
+    await deepCollect(path);
 
-    await batch.commit();
+    for (int i = 0; i < toDelete.length; i += batchLimit) {
+      final batch = delegate.batch();
+      final end =
+          (i + batchLimit > toDelete.length) ? toDelete.length : i + batchLimit;
+
+      for (final docPath in toDelete.sublist(i, end)) {
+        batch.delete(docPath);
+      }
+
+      await batch.commit();
+    }
   }
 
   Future<DataGetsSnapshot> get(

@@ -298,9 +298,12 @@ abstract class DataSource<T extends Entity> {
   Future<Response<T>> deleteById(
     String id, {
     DataFieldParams? params,
-    bool? resolveRefs,
-    List<String> ignorableResolverFields = const [],
-    bool deleteRefs = false,
+    // bool? resolveRefs,
+    // List<String> ignorableResolverFields = const [],
+    // bool deleteRefs = false,
+    required bool counter,
+    required bool deleteRefs,
+    required List<String> ignorableResolverFields,
   }) async {
     if (id.isEmpty) return Response(status: Status.invalidId);
     return execute(() {
@@ -313,7 +316,15 @@ abstract class DataSource<T extends Entity> {
       ).then((old) {
         if (!old.isValid) return old;
         final path = ref(params, DataModifiers.deleteById, id);
-        return operation.delete(path, deleteRefs: deleteRefs).then((value) {
+        return operation
+            .delete(
+          path,
+          deleteRefs: deleteRefs,
+          counter: counter,
+          ignorableResolverFields: ignorableResolverFields,
+          batchLimit: limitations.batchLimit,
+        )
+            .then((value) {
           return Response(status: Status.ok, backups: [old.data!]);
         });
       });
