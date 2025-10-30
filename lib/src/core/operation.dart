@@ -3,6 +3,8 @@ import 'dart:async';
 import '../core/checker.dart';
 import '../core/configs.dart';
 
+typedef Ignore = bool Function(String key, Object? value);
+
 class DataGetSnapshot {
   final Map<String, dynamic> doc;
   final Object? snapshot;
@@ -163,7 +165,7 @@ class DataOperation {
 
   Future<Map<String, dynamic>> _r(
     Map<String, dynamic> data,
-    List<String> ignores,
+    Ignore? ignore,
     bool countable,
   ) async {
     final result = Map<String, dynamic>.from(data);
@@ -172,7 +174,8 @@ class DataOperation {
       final key = entry.key;
       final value = entry.value;
 
-      if (key.startsWith('@') && (ignores.isEmpty || !ignores.contains(key)) &&
+      if (key.startsWith('@') &&
+          (ignore == null || !ignore(key, value)) &&
           value != null) {
         final fieldKey = key.substring(1);
 
@@ -181,7 +184,7 @@ class DataOperation {
             value,
             countable: countable,
             resolveRefs: true,
-            ignorableResolverFields: ignores,
+            ignore: ignore,
           );
           final snap = raw.doc;
           if (snap.isNotEmpty) {
@@ -195,7 +198,7 @@ class DataOperation {
                 v,
                 countable: countable,
                 resolveRefs: true,
-                ignorableResolverFields: ignores,
+                ignore: ignore,
               );
               final snap = raw.doc;
               if (snap.isNotEmpty) {
@@ -214,7 +217,7 @@ class DataOperation {
                 v,
                 countable: countable,
                 resolveRefs: true,
-                ignorableResolverFields: ignores,
+                ignore: ignore,
               );
               final snap = raw.doc;
               if (snap.isNotEmpty) {
@@ -225,7 +228,7 @@ class DataOperation {
           result[fieldKey] = resolvedMap;
         }
       } else if (key.startsWith('#') &&
-          (ignores.isEmpty || !ignores.contains(key)) &&
+          (ignore == null || !ignore(key, value)) &&
           value != null) {
         final fieldKey = key.substring(1);
 
@@ -285,7 +288,7 @@ class DataOperation {
     String path, {
     bool counter = false,
     bool deleteRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     int batchLimit = 500,
     int? batchMaxLimit,
   }) async {
@@ -300,7 +303,7 @@ class DataOperation {
         docPath,
         countable: false,
         resolveRefs: true,
-        ignorableResolverFields: ignorableResolverFields,
+        ignore: ignore,
       );
 
       if (!snap.exists) return;
@@ -329,7 +332,7 @@ class DataOperation {
             value,
             countable: false,
             resolveRefs: true,
-            ignorableResolverFields: ignorableResolverFields,
+            ignore: ignore,
           );
           if (!children.exists || children.docs.isEmpty) return;
           for (final child in children.docs) {
@@ -397,18 +400,17 @@ class DataOperation {
     bool countable = true,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) async {
     final data = await delegate.get(path);
     if (!data.exists) return DataGetsSnapshot();
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      docs: await Future.wait(
-          data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
+      docs: await Future.wait(data.docs.map((e) => _r(e, ignore, countable))),
       docChanges: resolveDocChangesRefs
-          ? await Future.wait(data.docChanges
-              .map((e) => _r(e, ignorableResolverFields, countable)))
+          ? await Future.wait(
+              data.docChanges.map((e) => _r(e, ignore, countable)))
           : data.docChanges,
     );
   }
@@ -417,14 +419,14 @@ class DataOperation {
     String path, {
     bool countable = true,
     bool resolveRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) async {
     final data = await delegate.getById(path);
     if (!data.exists) return DataGetSnapshot();
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      doc: await _r(data.doc, ignorableResolverFields, countable),
+      doc: await _r(data.doc, ignore, countable),
     );
   }
 
@@ -437,7 +439,7 @@ class DataOperation {
     bool countable = true,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) async {
     final data = await delegate.getByQuery(
       path,
@@ -450,11 +452,10 @@ class DataOperation {
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      docs: await Future.wait(
-          data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
+      docs: await Future.wait(data.docs.map((e) => _r(e, ignore, countable))),
       docChanges: resolveDocChangesRefs
-          ? await Future.wait(data.docChanges
-              .map((e) => _r(e, ignorableResolverFields, countable)))
+          ? await Future.wait(
+              data.docChanges.map((e) => _r(e, ignore, countable)))
           : data.docChanges,
     );
   }
@@ -464,18 +465,17 @@ class DataOperation {
     bool countable = true,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) {
     return delegate.listen(path).asyncMap((data) async {
       if (!data.exists) return DataGetsSnapshot();
       if (!resolveRefs) return data;
 
       return data.copyWith(
-        docs: await Future.wait(
-            data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
+        docs: await Future.wait(data.docs.map((e) => _r(e, ignore, countable))),
         docChanges: resolveDocChangesRefs
-            ? await Future.wait(data.docChanges
-                .map((e) => _r(e, ignorableResolverFields, countable)))
+            ? await Future.wait(
+                data.docChanges.map((e) => _r(e, ignore, countable)))
             : data.docChanges,
       );
     });
@@ -485,14 +485,14 @@ class DataOperation {
     String path, {
     bool countable = true,
     bool resolveRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) {
     return delegate.listenById(path).asyncMap((data) async {
       if (!data.exists) return DataGetSnapshot();
       if (!resolveRefs) return data;
 
       return data.copyWith(
-        doc: await _r(data.doc, ignorableResolverFields, countable),
+        doc: await _r(data.doc, ignore, countable),
       );
     });
   }
@@ -506,18 +506,17 @@ class DataOperation {
     bool countable = true,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) {
     return delegate.listenByQuery(path).asyncMap((data) async {
       if (!data.exists) return DataGetsSnapshot();
       if (!resolveRefs) return data;
 
       return data.copyWith(
-        docs: await Future.wait(
-            data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
+        docs: await Future.wait(data.docs.map((e) => _r(e, ignore, countable))),
         docChanges: resolveDocChangesRefs
-            ? await Future.wait(data.docChanges
-                .map((e) => _r(e, ignorableResolverFields, countable)))
+            ? await Future.wait(
+                data.docChanges.map((e) => _r(e, ignore, countable)))
             : data.docChanges,
       );
     });
@@ -529,18 +528,17 @@ class DataOperation {
     bool countable = true,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) async {
     final data = await delegate.search(path, checker);
     if (!data.exists) return DataGetsSnapshot();
     if (!resolveRefs) return data;
 
     return data.copyWith(
-      docs: await Future.wait(
-          data.docs.map((e) => _r(e, ignorableResolverFields, countable))),
+      docs: await Future.wait(data.docs.map((e) => _r(e, ignore, countable))),
       docChanges: resolveDocChangesRefs
-          ? await Future.wait(data.docChanges
-              .map((e) => _r(e, ignorableResolverFields, countable)))
+          ? await Future.wait(
+              data.docChanges.map((e) => _r(e, ignore, countable)))
           : data.docChanges,
     );
   }

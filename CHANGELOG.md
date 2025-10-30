@@ -1,3 +1,7 @@
+## 2.4.4
+
+* Remove ignorableResolverFields to ignore callback
+
 ## 2.4.3
 
 * Update batch improved fro delete field doc and ref

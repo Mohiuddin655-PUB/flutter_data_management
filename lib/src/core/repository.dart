@@ -1,12 +1,6 @@
 import 'package:flutter_entity/entity.dart';
 
-import 'cache_manager.dart';
-import 'checker.dart';
-import 'configs.dart';
-import 'database_type.dart';
-import 'modifiers.dart';
-import 'source.dart';
-import 'updating_info.dart';
+import '../../core.dart';
 
 typedef FutureConnectivityCallback = Future<bool> Function();
 
@@ -183,7 +177,7 @@ class DataRepository<T extends Entity> {
     bool? createRefs,
     bool? countable,
     bool resolveRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool? lazyMode,
     bool? backupMode,
   }) {
@@ -194,7 +188,7 @@ class DataRepository<T extends Entity> {
           params: params,
           countable: countable,
           resolveRefs: resolveRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
       if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
@@ -204,7 +198,7 @@ class DataRepository<T extends Entity> {
           params: params,
           countable: countable,
           resolveRefs: resolveRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
       if (backup.isValid) {
@@ -243,7 +237,7 @@ class DataRepository<T extends Entity> {
   Future<Response<T>> clear({
     DataFieldParams? params,
     bool? resolveRefs,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool deleteRefs = false,
     bool counter = false,
     bool? lazyMode,
@@ -257,7 +251,7 @@ class DataRepository<T extends Entity> {
               params: params,
               counter: counter,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               deleteRefs: deleteRefs,
             );
           });
@@ -267,7 +261,7 @@ class DataRepository<T extends Entity> {
               params: params,
               counter: counter,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               deleteRefs: deleteRefs,
             );
           });
@@ -278,7 +272,7 @@ class DataRepository<T extends Entity> {
           params: params,
           counter: counter,
           resolveRefs: resolveRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
           deleteRefs: deleteRefs,
         );
       });
@@ -483,7 +477,7 @@ class DataRepository<T extends Entity> {
     String id, {
     DataFieldParams? params,
     bool? resolveRefs,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool counter = false,
     bool deleteRefs = false,
     bool? lazyMode,
@@ -498,7 +492,7 @@ class DataRepository<T extends Entity> {
               params: params,
               counter: counter,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               deleteRefs: deleteRefs,
             );
           });
@@ -509,7 +503,7 @@ class DataRepository<T extends Entity> {
               params: params,
               counter: counter,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               deleteRefs: deleteRefs,
             );
           });
@@ -521,7 +515,7 @@ class DataRepository<T extends Entity> {
           params: params,
           counter: counter,
           resolveRefs: resolveRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
           deleteRefs: deleteRefs,
         );
       });
@@ -542,7 +536,7 @@ class DataRepository<T extends Entity> {
     Iterable<String> ids, {
     DataFieldParams? params,
     bool? resolveRefs,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool counter = false,
     bool deleteRefs = false,
     bool? lazyMode,
@@ -557,7 +551,7 @@ class DataRepository<T extends Entity> {
               params: params,
               counter: counter,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               deleteRefs: deleteRefs,
             );
           });
@@ -568,7 +562,7 @@ class DataRepository<T extends Entity> {
               params: params,
               counter: counter,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               deleteRefs: deleteRefs,
             );
           });
@@ -580,7 +574,7 @@ class DataRepository<T extends Entity> {
           params: params,
           counter: counter,
           resolveRefs: resolveRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
           deleteRefs: deleteRefs,
         );
       });
@@ -601,7 +595,7 @@ class DataRepository<T extends Entity> {
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool? createRefs,
     bool merge = true,
     bool? lazyMode,
@@ -618,7 +612,6 @@ class DataRepository<T extends Entity> {
           onlyUpdates,
           resolveRefs,
           resolveDocChangesRefs,
-          ...ignorableResolverFields,
         ],
         callback: () => _execute((source) {
           return source.get(
@@ -626,7 +619,7 @@ class DataRepository<T extends Entity> {
             countable: countable,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
-            ignorableResolverFields: ignorableResolverFields,
+            ignore: ignore,
             onlyUpdates: onlyUpdates,
           );
         }),
@@ -638,7 +631,7 @@ class DataRepository<T extends Entity> {
           countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
           onlyUpdates: onlyUpdates,
         );
       });
@@ -681,7 +674,7 @@ class DataRepository<T extends Entity> {
     DataFieldParams? params,
     bool? countable,
     bool resolveRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool? createRefs,
     bool merge = true,
     bool? lazyMode,
@@ -697,7 +690,6 @@ class DataRepository<T extends Entity> {
           params,
           countable,
           resolveRefs,
-          ...ignorableResolverFields
         ],
         callback: () => _execute((source) {
           return source.getById(
@@ -705,7 +697,7 @@ class DataRepository<T extends Entity> {
             params: params,
             countable: countable,
             resolveRefs: resolveRefs,
-            ignorableResolverFields: ignorableResolverFields,
+            ignore: ignore,
           );
         }),
       );
@@ -716,7 +708,7 @@ class DataRepository<T extends Entity> {
           params: params,
           countable: countable,
           resolveRefs: resolveRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
       if (backup.isValid) {
@@ -760,7 +752,7 @@ class DataRepository<T extends Entity> {
     bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool? createRefs,
     bool merge = true,
     bool? lazyMode,
@@ -776,7 +768,6 @@ class DataRepository<T extends Entity> {
           params,
           resolveRefs,
           resolveDocChangesRefs,
-          ...ignorableResolverFields,
         ],
         callback: () => _execute((source) {
           return source.getByIds(
@@ -785,7 +776,7 @@ class DataRepository<T extends Entity> {
             countable: countable,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
-            ignorableResolverFields: ignorableResolverFields,
+            ignore: ignore,
           );
         }),
       );
@@ -797,7 +788,7 @@ class DataRepository<T extends Entity> {
           countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
       if (backup.isValid) {
@@ -845,7 +836,7 @@ class DataRepository<T extends Entity> {
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool? createRefs,
     bool merge = true,
     bool? lazyMode,
@@ -866,7 +857,6 @@ class DataRepository<T extends Entity> {
           onlyUpdates,
           resolveRefs,
           resolveDocChangesRefs,
-          ...ignorableResolverFields,
         ],
         callback: () => _execute((source) {
           return source.getByQuery(
@@ -879,7 +869,7 @@ class DataRepository<T extends Entity> {
             onlyUpdates: onlyUpdates,
             resolveRefs: resolveRefs,
             resolveDocChangesRefs: resolveDocChangesRefs,
-            ignorableResolverFields: ignorableResolverFields,
+            ignore: ignore,
           );
         }),
       );
@@ -895,7 +885,7 @@ class DataRepository<T extends Entity> {
           onlyUpdates: onlyUpdates,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
       if (backup.isValid) {
@@ -937,7 +927,7 @@ class DataRepository<T extends Entity> {
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) {
     return _streamModifier(DataModifiers.listen, () {
       return _stream((source) {
@@ -947,7 +937,7 @@ class DataRepository<T extends Entity> {
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
           onlyUpdates: onlyUpdates,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
     });
@@ -984,7 +974,7 @@ class DataRepository<T extends Entity> {
     DataFieldParams? params,
     bool? countable,
     bool resolveRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) {
     return _streamModifier(DataModifiers.listenById, () {
       return _stream((source) {
@@ -993,7 +983,7 @@ class DataRepository<T extends Entity> {
           params: params,
           countable: countable,
           resolveRefs: resolveRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
     });
@@ -1015,7 +1005,7 @@ class DataRepository<T extends Entity> {
     bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) {
     return _streamModifier(DataModifiers.listenByIds, () {
       return _stream((source) {
@@ -1025,7 +1015,7 @@ class DataRepository<T extends Entity> {
           countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
     });
@@ -1051,7 +1041,7 @@ class DataRepository<T extends Entity> {
     bool onlyUpdates = false,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
   }) {
     return _streamModifier(DataModifiers.listenByQuery, () {
       return _stream((source) {
@@ -1065,7 +1055,7 @@ class DataRepository<T extends Entity> {
           onlyUpdates: onlyUpdates,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
     });
@@ -1085,7 +1075,7 @@ class DataRepository<T extends Entity> {
     bool? countable,
     bool? resolveRefs,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool createRefs = false,
     bool merge = true,
     bool? lazyMode,
@@ -1098,7 +1088,7 @@ class DataRepository<T extends Entity> {
         resolveRefs: resolveRefs ?? createRefs,
         resolveDocChangesRefs: resolveDocChangesRefs,
         onlyUpdates: onlyUpdates,
-        ignorableResolverFields: ignorableResolverFields,
+        ignore: ignore,
       );
     });
     if (!backup.isValid) return;
@@ -1139,7 +1129,7 @@ class DataRepository<T extends Entity> {
     bool? countable,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool? createRefs,
     bool merge = true,
     bool? lazyMode,
@@ -1153,7 +1143,7 @@ class DataRepository<T extends Entity> {
           countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
       if (feedback.isValid || !isBackupMode(backupMode)) return feedback;
@@ -1164,7 +1154,7 @@ class DataRepository<T extends Entity> {
           countable: countable,
           resolveRefs: resolveRefs,
           resolveDocChangesRefs: resolveDocChangesRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
         );
       });
       if (backup.isValid) {
@@ -1207,7 +1197,7 @@ class DataRepository<T extends Entity> {
     Map<String, dynamic> data, {
     DataFieldParams? params,
     bool? resolveRefs,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool updateRefs = false,
     bool? lazyMode,
     bool? backupMode,
@@ -1221,7 +1211,7 @@ class DataRepository<T extends Entity> {
               data,
               params: params,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               updateRefs: updateRefs,
             );
           });
@@ -1232,7 +1222,7 @@ class DataRepository<T extends Entity> {
               data,
               params: params,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               updateRefs: updateRefs,
             );
           });
@@ -1244,7 +1234,7 @@ class DataRepository<T extends Entity> {
           data,
           params: params,
           resolveRefs: resolveRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
           updateRefs: updateRefs,
         );
       });
@@ -1268,7 +1258,7 @@ class DataRepository<T extends Entity> {
     Iterable<DataWriter> updates, {
     DataFieldParams? params,
     bool? resolveRefs,
-    List<String> ignorableResolverFields = const [],
+    Ignore? ignore,
     bool updateRefs = false,
     bool? lazyMode,
     bool? backupMode,
@@ -1281,7 +1271,7 @@ class DataRepository<T extends Entity> {
               updates,
               params: params,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               updateRefs: updateRefs,
             );
           });
@@ -1291,7 +1281,7 @@ class DataRepository<T extends Entity> {
               updates,
               params: params,
               resolveRefs: resolveRefs,
-              ignorableResolverFields: ignorableResolverFields,
+              ignore: ignore,
               updateRefs: updateRefs,
             );
           });
@@ -1302,7 +1292,7 @@ class DataRepository<T extends Entity> {
           updates,
           params: params,
           resolveRefs: resolveRefs,
-          ignorableResolverFields: ignorableResolverFields,
+          ignore: ignore,
           updateRefs: updateRefs,
         );
       });
