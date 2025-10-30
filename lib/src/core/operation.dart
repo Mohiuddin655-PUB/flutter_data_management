@@ -117,7 +117,24 @@ class DataOperation {
 
   Map<String, dynamic> _w(DataWriteBatch batch, Map data, bool merge) {
     dynamic handle(dynamic value) {
-      if (value is Map) {
+      if (value is DataFieldValueWriter) {
+        switch (value.type) {
+          case DataFieldValueWriterType.set:
+            final doc = value.value ?? {};
+            if (doc.isEmpty) break;
+            final options = value.options as DataSetOptions;
+            batch.set(value.path, _w(batch, doc, merge), options.merge);
+            return value.path;
+          case DataFieldValueWriterType.update:
+            final doc = value.value ?? {};
+            if (doc.isEmpty) return value;
+            batch.update(value.path, _w(batch, doc, merge));
+            return value.path;
+          case DataFieldValueWriterType.delete:
+            batch.delete(value.path);
+            return null;
+        }
+      } else if (value is Map) {
         final path = value["path"];
 
         if (path is! String || path.isEmpty) {
@@ -142,10 +159,8 @@ class DataOperation {
           return null;
         }
 
-        return path;
-      }
-
-      if (value is List && value.isNotEmpty) {
+        return _w(batch, value, merge);
+      } else if (value is List && value.isNotEmpty) {
         return value.map(handle).where((e) => e != null).toList();
       }
 
@@ -155,7 +170,11 @@ class DataOperation {
     final entries = data.entries.map((e) {
       final k = e.key;
       if (k is! String || k.isEmpty) return null;
-      final v = k.startsWith("@") ? handle(e.value) : e.value;
+      final v = e.value is DataFieldValueWriter ||
+              k.startsWith("@") ||
+              k.startsWith("#")
+          ? handle(e.value)
+          : e.value;
       if (v == null) return null;
       return MapEntry(k, v);
     }).whereType<MapEntry<String, dynamic>>();
@@ -174,7 +193,50 @@ class DataOperation {
       final key = entry.key;
       final value = entry.value;
 
-      if (key.startsWith('@') &&
+      if (value is DataFieldValueReader) {
+        String fieldKey = key;
+        if (fieldKey.startsWith("@") || fieldKey.startsWith("#")) {
+          fieldKey = key.substring(1);
+        }
+        switch (value.type) {
+          case DataFieldValueReaderType.count:
+            final raw = await count(value.path);
+            final snap = raw ?? 0;
+            if (snap > 0) {
+              result[fieldKey] = snap;
+            }
+            break;
+          case DataFieldValueReaderType.get:
+            final raw = await getById(
+              value.path,
+              countable: countable,
+              resolveRefs: true,
+              ignore: ignore,
+            );
+            final snap = raw.doc;
+            if (snap.isNotEmpty) {
+              result[fieldKey] = snap;
+            }
+            break;
+          case DataFieldValueReaderType.filter:
+            final options = value.options as DataFieldValueQueryOptions;
+            final raw = await getByQuery(
+              value.path,
+              queries: options.queries,
+              selections: options.selections,
+              sorts: options.sorts,
+              options: options.options,
+              countable: countable,
+              resolveRefs: true,
+              ignore: ignore,
+            );
+            final snap = raw.docs;
+            if (snap.isNotEmpty) {
+              result[fieldKey] = snap.toList();
+            }
+            break;
+        }
+      } else if (key.startsWith('@') &&
           (ignore == null || !ignore(key, value)) &&
           value != null) {
         final fieldKey = key.substring(1);

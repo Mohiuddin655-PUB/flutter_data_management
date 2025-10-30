@@ -1,5 +1,7 @@
 ## 2.4.4
 
+* Add DataFieldReader to manage internal read operation for children
+* Add DataFieldWriter to manage internal write operation for children
 * Remove ignorableResolverFields to ignore callback
 
 ## 2.4.3

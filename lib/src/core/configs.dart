@@ -2,6 +2,10 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
+export 'field_value_reader.dart';
+export 'field_value_writer.dart';
+export 'set_options.dart';
+
 part 'field_path.dart';
 part 'field_value.dart';
 part 'filter.dart';
