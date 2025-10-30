@@ -26,7 +26,12 @@ class DataFieldValueWriter {
     String path,
     Map<String, dynamic> value, {
     DataSetOptions options = const DataSetOptions(),
-  }) : this._(path: path, type: DataFieldValueWriterType.set, value: value);
+  }) : this._(
+          path: path,
+          type: DataFieldValueWriterType.set,
+          value: value,
+          options: options,
+        );
 
   const DataFieldValueWriter.update(String path, Map<String, dynamic> value)
       : this._(path: path, type: DataFieldValueWriterType.update, value: value);

@@ -1,3 +1,7 @@
+## 2.4.5
+
+* DataFieldValueWriter DataSetOption improved
+
 ## 2.4.4
 
 * Add DataFieldReader to manage internal read operation for children

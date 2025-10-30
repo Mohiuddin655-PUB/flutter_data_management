@@ -127,7 +127,7 @@ class DataOperation {
             return value.path;
           case DataFieldValueWriterType.update:
             final doc = value.value ?? {};
-            if (doc.isEmpty) return value;
+            if (doc.isEmpty) break;
             batch.update(value.path, _w(batch, doc, merge));
             return value.path;
           case DataFieldValueWriterType.delete:
