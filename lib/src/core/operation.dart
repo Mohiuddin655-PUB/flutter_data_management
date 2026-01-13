@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../core/checker.dart';
 import '../core/configs.dart';
+import 'encryptor.dart';
 
 typedef Ignore = bool Function(String key, Object? value);
 
@@ -64,6 +65,88 @@ abstract class DataWriteBatch {
   Future<void> commit();
 }
 
+abstract class DataBatchWriter {
+  final String path;
+
+  const DataBatchWriter(this.path);
+
+  @override
+  int get hashCode => path.hashCode;
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+    return other is DataBatchWriter && other.path == path;
+  }
+
+  @override
+  String toString() => '$DataBatchWriter#$hashCode{path: $path}';
+}
+
+class DataSetWriter extends DataBatchWriter {
+  final Object data;
+  final DataSetOptions options;
+
+  const DataSetWriter(
+    super.path,
+    this.data, [
+    this.options = const DataSetOptions(),
+  ]);
+
+  @override
+  int get hashCode => Object.hash(path, data, options);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+    if (other is! DataSetWriter) return false;
+    if (other.path != path) return false;
+    if (other.data != data) return false;
+    if (other.options != options) return false;
+    return true;
+  }
+
+  @override
+  String toString() {
+    return '$DataSetWriter#$hashCode{path: $path, data: $data, options: $options}';
+  }
+}
+
+class DataUpdateWriter extends DataBatchWriter {
+  final Map<String, dynamic> data;
+
+  const DataUpdateWriter(super.path, this.data);
+
+  @override
+  int get hashCode => Object.hash(path, data);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+    if (other is! DataUpdateWriter) return false;
+    if (other.path != path) return false;
+    if (other.data != data) return false;
+    return true;
+  }
+
+  @override
+  String toString() {
+    return '$DataUpdateWriter#$hashCode{path: $path, data: $data}';
+  }
+}
+
+class DataDeleteWriter extends DataBatchWriter {
+  const DataDeleteWriter(super.path);
+
+  @override
+  String toString() {
+    return '$DataDeleteWriter#$hashCode{path: $path}';
+  }
+}
+
 abstract class DataDelegate {
   const DataDelegate();
 
@@ -72,7 +155,6 @@ abstract class DataDelegate {
   Object? updatingFieldValue(Object? value);
 
   Future<int?> count(String path);
-
 
   Future<void> create(
     String path,
@@ -91,7 +173,7 @@ abstract class DataDelegate {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
   });
 
   Stream<DataGetsSnapshot> listen(String path);
@@ -103,7 +185,7 @@ abstract class DataDelegate {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
   });
 
   Future<DataGetsSnapshot> search(String path, Checker checker);
@@ -498,7 +580,7 @@ class DataOperation {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
     bool countable = true,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
@@ -565,7 +647,7 @@ class DataOperation {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
     bool countable = true,
     bool resolveRefs = false,
     bool resolveDocChangesRefs = false,
@@ -617,5 +699,24 @@ class DataOperation {
     final processedData = _w(batch, data, true);
     batch.update(path, processedData);
     await batch.commit();
+  }
+
+  Future<void> write(
+    List<DataBatchWriter> writers,
+    DataEncryptor? encryptor,
+  ) async {
+    final batch = delegate.batch();
+    for (var w in writers) {
+      if (w is DataSetWriter) {
+        final raw = encryptor != null ? await encryptor.input(w.data) : null;
+        batch.set(w.path, raw ?? w.data, w.options.merge);
+      } else if (w is DataUpdateWriter) {
+        final raw = encryptor != null ? await encryptor.input(w.data) : null;
+        batch.update(w.path, raw ?? w.data);
+      } else if (w is DataDeleteWriter) {
+        batch.delete(w.path);
+      }
+    }
+    return batch.commit();
   }
 }

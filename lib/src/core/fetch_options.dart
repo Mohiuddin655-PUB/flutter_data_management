@@ -1,22 +1,28 @@
 part of 'configs.dart';
 
-class DataPagingOptions {
+class DataFetchOptions {
   final bool fetchFromLast;
   final int? fetchingSize;
   final int? initialSize;
 
-  const DataPagingOptions({
+  const DataFetchOptions({
     int? initialFetchSize,
     this.fetchFromLast = false,
     this.fetchingSize,
   }) : initialSize = initialFetchSize ?? fetchingSize;
 
-  DataPagingOptions copy({
+  const DataFetchOptions.limit(int value, [bool fetchFromLast = false])
+      : this(fetchingSize: value, fetchFromLast: fetchFromLast);
+
+  const DataFetchOptions.single([bool fetchFromLast = false])
+      : this.limit(1, fetchFromLast);
+
+  DataFetchOptions copy({
     bool? fetchFromLast,
     int? fetchingSize,
     int? initialSize,
   }) {
-    return DataPagingOptions(
+    return DataFetchOptions(
       initialFetchSize: initialSize ?? this.initialSize,
       fetchingSize: fetchingSize ?? this.fetchingSize,
       fetchFromLast: fetchFromLast ?? this.fetchFromLast,
@@ -32,7 +38,7 @@ class DataPagingOptions {
 
   @override
   bool operator ==(Object other) {
-    return other is DataPagingOptions &&
+    return other is DataFetchOptions &&
         other.fetchFromLast == fetchFromLast &&
         other.fetchingSize == fetchingSize &&
         other.initialSize == initialSize;
@@ -40,6 +46,6 @@ class DataPagingOptions {
 
   @override
   String toString() {
-    return "$DataPagingOptions(fetchingSize: $fetchingSize, initialSize: $initialSize, fetchFromLast: $fetchFromLast)";
+    return "$DataFetchOptions(fetchingSize: $fetchingSize, initialSize: $initialSize, fetchFromLast: $fetchFromLast)";
   }
 }

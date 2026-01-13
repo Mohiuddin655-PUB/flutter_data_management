@@ -10,7 +10,7 @@ part 'field_path.dart';
 part 'field_value.dart';
 part 'filter.dart';
 part 'id_generator.dart';
-part 'paging_options.dart';
+part 'fetch_options.dart';
 part 'params.dart';
 part 'path_replacer.dart';
 part 'query.dart';

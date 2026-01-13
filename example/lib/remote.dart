@@ -87,7 +87,7 @@ class FirestoreDataDelegate extends DataDelegate {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
   }) {
     return FirestoreQueryHelper.query(
       db.collection(path),
@@ -131,7 +131,7 @@ class FirestoreDataDelegate extends DataDelegate {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
   }) {
     return FirestoreQueryHelper.query(
       db.collection(path),
@@ -214,7 +214,7 @@ class FirestoreQueryHelper {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
   }) {
     var isFetchingMode = true;
     final fetchingSizeInit = options.initialSize ?? 0;

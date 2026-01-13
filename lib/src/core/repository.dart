@@ -831,7 +831,7 @@ class DataRepository<T extends Entity> {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
     bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
@@ -1036,7 +1036,7 @@ class DataRepository<T extends Entity> {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
     bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
@@ -1296,6 +1296,15 @@ class DataRepository<T extends Entity> {
           updateRefs: updateRefs,
         );
       });
+    });
+  }
+
+  Future<Response<void>> write(List<DataBatchWriter> writers) {
+    return _execute((source) async {
+      final response = await source.write(writers);
+      return response.isSuccessful
+          ? Response.ok()
+          : Response.failure(response.error);
     });
   }
 }

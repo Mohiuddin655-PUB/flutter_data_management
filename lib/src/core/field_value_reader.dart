@@ -4,13 +4,13 @@ class DataFieldValueQueryOptions {
   final Iterable<DataQuery> queries;
   final Iterable<DataSelection> selections;
   final Iterable<DataSorting> sorts;
-  final DataPagingOptions options;
+  final DataFetchOptions options;
 
   const DataFieldValueQueryOptions({
     this.queries = const [],
     this.selections = const [],
     this.sorts = const [],
-    this.options = const DataPagingOptions(),
+    this.options = const DataFetchOptions(),
   });
 
   @override

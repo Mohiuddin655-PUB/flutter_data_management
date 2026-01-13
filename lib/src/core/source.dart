@@ -548,7 +548,7 @@ abstract class DataSource<T extends Entity> {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
     bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
@@ -795,7 +795,7 @@ abstract class DataSource<T extends Entity> {
     Iterable<DataQuery> queries = const [],
     Iterable<DataSelection> selections = const [],
     Iterable<DataSorting> sorts = const [],
-    DataPagingOptions options = const DataPagingOptions(),
+    DataFetchOptions options = const DataFetchOptions(),
     bool? countable,
     bool onlyUpdates = false,
     bool resolveRefs = false,
@@ -808,6 +808,10 @@ abstract class DataSource<T extends Entity> {
       return operation
           .listenByQuery(
         path,
+        queries: queries,
+        selections: selections,
+        sorts: sorts,
+        options: options,
         countable: countable ?? false,
         resolveRefs: resolveRefs && !onlyUpdates,
         resolveDocChangesRefs:
@@ -970,6 +974,15 @@ abstract class DataSource<T extends Entity> {
           snapshot: value,
           backups: value.map((e) => e.data).whereType<T>().toList(),
         );
+      });
+    });
+  }
+
+  Future<Response<void>> write(List<DataBatchWriter> writers) async {
+    if (writers.isEmpty) return Response(status: Status.invalid);
+    return execute(() {
+      return operation.write(writers, isEncryptor ? encryptor : null).then((v) {
+        return Response(status: Status.ok);
       });
     });
   }
