@@ -1,3 +1,7 @@
+## 2.4.7
+
+- Bump version to 2.4.7 and update query parameters in DataOperation
+
 ## 2.4.6
 
 - DataBatchWriter [DataSetWriter, DataUpdateWriter, DataDeleteWriter] added to manager multi-task calling by repository, source etc.

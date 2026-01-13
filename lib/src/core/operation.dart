@@ -653,7 +653,15 @@ class DataOperation {
     bool resolveDocChangesRefs = false,
     Ignore? ignore,
   }) {
-    return delegate.listenByQuery(path).asyncMap((data) async {
+    return delegate
+        .listenByQuery(
+      path,
+      queries: queries,
+      selections: selections,
+      sorts: sorts,
+      options: options,
+    )
+        .asyncMap((data) async {
       if (!data.exists) return DataGetsSnapshot();
       if (!resolveRefs) return data;
 
