@@ -73,6 +73,7 @@ abstract class DataDelegate {
 
   Future<int?> count(String path);
 
+
   Future<void> create(
     String path,
     Map<String, dynamic> data, [
