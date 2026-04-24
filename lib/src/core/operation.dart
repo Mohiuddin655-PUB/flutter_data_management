@@ -154,6 +154,8 @@ abstract class DataDelegate {
 
   Object? updatingFieldValue(Object? value);
 
+  Object? queryFieldValue(Object? value) => value;
+
   Future<int?> count(String path);
 
   Future<void> create(

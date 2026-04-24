@@ -558,6 +558,8 @@ abstract class DataSource<T extends Entity> {
     return execute(() {
       List<T> result = [];
       final path = ref(params, DataModifiers.getByQuery);
+      queries = queries.map((e) => e.adjust(delegate.queryFieldValue));
+      selections = selections.map((e) => e.adjust(delegate.queryFieldValue));
       return operation
           .getByQuery(
         path,
@@ -805,6 +807,8 @@ abstract class DataSource<T extends Entity> {
     return executeStream(() {
       List<T> result = [];
       final path = ref(params, DataModifiers.listenByQuery);
+      queries = queries.map((e) => e.adjust(delegate.queryFieldValue));
+      selections = selections.map((e) => e.adjust(delegate.queryFieldValue));
       return operation
           .listenByQuery(
         path,

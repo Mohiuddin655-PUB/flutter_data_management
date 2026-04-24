@@ -2,6 +2,7 @@ part of 'configs.dart';
 
 class DataQuery {
   final Object field;
+  final bool? isNull;
   final Object? isEqualTo;
   final Object? isNotEqualTo;
   final Object? isLessThan;
@@ -14,10 +15,10 @@ class DataQuery {
   final Iterable<Object?>? arrayNotContainsAny;
   final Iterable<Object?>? whereIn;
   final Iterable<Object?>? whereNotIn;
-  final bool? isNull;
 
   const DataQuery(
     this.field, {
+    this.isNull,
     this.isEqualTo,
     this.isNotEqualTo,
     this.isLessThan,
@@ -30,27 +31,46 @@ class DataQuery {
     this.arrayNotContainsAny,
     this.whereIn,
     this.whereNotIn,
-    this.isNull,
   });
 
   const DataQuery.filter(DataFilter filter) : this(filter);
 
+  DataQuery adjust(Object? Function(Object? value) converter) {
+    return DataQuery(
+      field,
+      isNull: isNull,
+      isEqualTo: converter(isEqualTo),
+      isNotEqualTo: converter(isNotEqualTo),
+      isLessThan: converter(isLessThan),
+      isLessThanOrEqualTo: converter(isLessThanOrEqualTo),
+      isGreaterThan: converter(isGreaterThan),
+      isGreaterThanOrEqualTo: converter(isGreaterThanOrEqualTo),
+      arrayContains: converter(arrayContains),
+      arrayNotContains: converter(arrayNotContains),
+      arrayContainsAny: arrayContainsAny?.map(converter),
+      arrayNotContainsAny: arrayNotContainsAny?.map(converter),
+      whereIn: whereIn?.map(converter),
+      whereNotIn: whereNotIn?.map(converter),
+    );
+  }
+
   @override
-  int get hashCode =>
-      field.hashCode ^
-      isEqualTo.hashCode ^
-      isNotEqualTo.hashCode ^
-      isLessThan.hashCode ^
-      isLessThanOrEqualTo.hashCode ^
-      isGreaterThan.hashCode ^
-      isGreaterThanOrEqualTo.hashCode ^
-      arrayContains.hashCode ^
-      arrayNotContains.hashCode ^
-      arrayContainsAny.hashCode ^
-      arrayNotContainsAny.hashCode ^
-      whereIn.hashCode ^
-      whereNotIn.hashCode ^
-      isNull.hashCode;
+  int get hashCode => Object.hash(
+        field,
+        isNull,
+        isEqualTo,
+        isNotEqualTo,
+        isLessThan,
+        isLessThanOrEqualTo,
+        isGreaterThan,
+        isGreaterThanOrEqualTo,
+        arrayContains,
+        arrayNotContains,
+        arrayContainsAny,
+        arrayNotContainsAny,
+        whereIn,
+        whereNotIn,
+      );
 
   @override
   bool operator ==(Object other) {

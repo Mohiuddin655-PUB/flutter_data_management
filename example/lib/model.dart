@@ -8,15 +8,15 @@ class Photo extends Entity {
   final String? path;
   final String? url;
 
-  const Photo({super.id, super.timeMills, this.path, this.url});
+  const Photo({super.id, super.createdAt, this.path, this.url});
 
   factory Photo.from(Object? source) {
     if (source is! Map) return Photo();
     return Photo(
-      id: source["id"],
-      timeMills: source["timeMills"],
-      path: source["path"],
-      url: source["url"],
+      id: source.entityValue("id"),
+      createdAt: source.entityValue("createdAt"),
+      path: source.entityValue("path"),
+      url: source.entityValue("url"),
     );
   }
 
@@ -33,15 +33,15 @@ class User extends Entity {
   final String? path;
   final String? name;
 
-  const User({super.id, super.timeMills, this.path, this.name});
+  const User({super.id, super.createdAt, this.path, this.name});
 
   factory User.from(Object? source) {
     if (source is! Map) return User();
     return User(
-      id: source["id"],
-      timeMills: source["timeMills"],
-      path: source["path"],
-      name: source["name"],
+      id: source.entityValue("id"),
+      createdAt: source.entityValue("createdAt"),
+      path: source.entityValue("path"),
+      name: source.entityValue("name"),
     );
   }
 
@@ -61,7 +61,7 @@ class Feed extends Entity {
 
   const Feed({
     super.id,
-    super.timeMills,
+    super.createdAt,
     this.title,
     this.publisher,
     this.photo,
@@ -70,9 +70,9 @@ class Feed extends Entity {
   factory Feed.from(Object? source) {
     if (source is! Map) return Feed();
     return Feed(
-      id: source["id"],
-      timeMills: source["timeMills"],
-      title: source["title"],
+      id: source.entityValue("id"),
+      createdAt: source.entityValue("createdAt"),
+      title: source.entityValue("title"),
       publisher: User.from(source["publisher"]),
       photo: Photo.from(source["photo"]),
     );

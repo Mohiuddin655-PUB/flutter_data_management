@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:data_management/core.dart';
+import 'package:flutter_entity/entity.dart';
 
 class FirestoreWriteBatch extends DataWriteBatch {
   late WriteBatch batch;
@@ -184,6 +185,12 @@ class FirestoreDataDelegate extends DataDelegate {
       case DataFieldValues.none:
         return value;
     }
+  }
+
+  @override
+  Object? queryFieldValue(Object? value) {
+    if (value is EntityTimestamp) return Timestamp.fromDate(value.dateTime);
+    return value;
   }
 }
 

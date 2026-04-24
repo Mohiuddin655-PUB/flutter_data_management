@@ -43,6 +43,10 @@ class DataSelection {
     this.type = DataSelections.none,
   });
 
+  DataSelection adjust(Object? Function(Object? value) converter) {
+    return DataSelection._(converter(value), type: type);
+  }
+
   const DataSelection.empty() : this._(null);
 
   const DataSelection.from(Object? snapshot, DataSelections type)
