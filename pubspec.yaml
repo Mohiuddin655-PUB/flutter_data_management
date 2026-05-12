@@ -1,6 +1,6 @@
 name: data_management
 description: Collection of service with advanced style and controlling system.
-version: 2.4.8
+version: 2.4.9
 repository: https://github.com/Mohiuddin655-PUB/flutter_data_management
 
 environment:
@@ -11,9 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
 
-  async: ^2.13.0
+  async: ^2.13.1
   encrypt: ^5.0.3
-  flutter_entity: ^1.3.1
+  flutter_entity: ^1.3.3
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:
